@@ -121,3 +121,43 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .custom-popup .leaflet-popup-content-wrapper {
+    @apply bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl;
+    backdrop-filter: blur(16px);
+  }
+
+  .custom-popup .leaflet-popup-tip {
+    @apply bg-background/95;
+    backdrop-filter: blur(16px);
+  }
+
+  .leaflet-container {
+    @apply bg-gradient-to-br from-accent/5 to-primary/5;
+  }
+
+  .leaflet-control-zoom {
+    @apply bg-background/80 backdrop-blur-xl border border-white/20 rounded-xl shadow-lg;
+    backdrop-filter: blur(16px);
+  }
+
+  .leaflet-control-zoom a {
+    @apply bg-transparent hover:bg-accent/50 text-foreground border-white/20;
+    backdrop-filter: blur(16px);
+    transition: all 0.2s ease;
+  }
+
+  .leaflet-control-zoom a:first-child {
+    @apply rounded-t-lg;
+  }
+
+  .leaflet-control-zoom a:last-child {
+    @apply rounded-b-lg;
+  }
+
+  .leaflet-control-attribution {
+    @apply bg-background/80 backdrop-blur-xl border border-white/20 rounded-lg;
+    backdrop-filter: blur(16px);
+  }
+}
