@@ -21,7 +21,7 @@ export default function NavBar({ onBarangaySelect }: NavBarProps) {
 
   useEffect(() => {
     // Load barangay names from GeoJSON
-    fetch("/lib/barangay-data.json")
+    fetch("/barangay-data.json")
       .then((response) => response.json())
       .then((data) => {
         const names =

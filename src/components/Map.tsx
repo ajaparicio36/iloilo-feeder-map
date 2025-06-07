@@ -29,7 +29,7 @@ export default function Map({ selectedBarangay }: MapProps) {
 
   useEffect(() => {
     // Load barangay data
-    fetch("/lib/barangay-data.json")
+    fetch("/barangay-data.json")
       .then((response) => response.json())
       .then((data) => setGeoData(data))
       .catch((error) => console.error("Error loading barangay data:", error));
