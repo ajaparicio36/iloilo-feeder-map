@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Feeder {
+  id                 String               @id @default(cuid())
+  name               String
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  feederCoverage     FeederCoverage[]
+  interruptedFeeders InterruptedFeeders[]
+}
+
+model Barangay {
+  id             String           @id @default(cuid())
+  name           String
+  psgcId         String           @unique
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  FeederCoverage FeederCoverage[]
+}
+
+model FeederCoverage {
+  id         String   @id @default(cuid())
+  feederId   String
+  barangayId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  feeder   Feeder   @relation(fields: [feederId], references: [id], onDelete: Cascade)
+  barangay Barangay @relation(fields: [barangayId], references: [id], onDelete: Cascade)
+
+  @@unique([feederId, barangayId])
+  @@map("feeder_barangays")
+}
+
+model Interruption {
+  id                 String               @id @default(cuid())
+  startTime          DateTime
+  endTime            DateTime?
+  description        String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  interruptedFeeders InterruptedFeeders[]
+
+  @@map("interruptions")
+}
+
+model InterruptedFeeders {
+  id             String   @id @default(cuid())
+  interruptionId String
+  feederId       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  interruption Interruption @relation(fields: [interruptionId], references: [id], onDelete: Cascade)
+  feeder       Feeder       @relation(fields: [feederId], references: [id], onDelete: Cascade)
+
+  @@unique([interruptionId, feederId])
+  @@map("interrupted_feedings")
+}

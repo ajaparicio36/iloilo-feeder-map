@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^6.9.0",
     "@radix-ui/react-navigation-menu": "^1.2.13",
     "@radix-ui/react-slot": "^1.2.3",
     "@types/leaflet": "^1.9.18",
@@ -17,12 +18,14 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.513.0",
     "next": "15.3.3",
+    "prisma": "^6.9.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-leaflet": "^5.0.0",
     "tailwind-merge": "^3.3.0"
   },
   "devDependencies": {
+    "@prisma/cli-init": "^0.2.0",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
