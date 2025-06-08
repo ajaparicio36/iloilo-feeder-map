@@ -120,9 +120,48 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Ensure backdrop-filter is supported */
+  @supports (backdrop-filter: blur(0)) {
+    .backdrop-blur-xl {
+      backdrop-filter: blur(24px);
+    }
+    .backdrop-blur-2xl {
+      backdrop-filter: blur(40px);
+    }
+  }
+
+  /* Fallback for unsupported browsers */
+  @supports not (backdrop-filter: blur(0)) {
+    .backdrop-blur-xl {
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+    .backdrop-blur-2xl {
+      background-color: rgba(255, 255, 255, 0.9);
+    }
+    .dark .backdrop-blur-xl {
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+    .dark .backdrop-blur-2xl {
+      background-color: rgba(0, 0, 0, 0.9);
+    }
+  }
 }
 
 @layer components {
+  /* Enhanced glassmorphism utilities */
+  .glass-card {
+    @apply bg-background/20 backdrop-blur-2xl border-white/30 shadow-2xl;
+  }
+
+  .glass-input {
+    @apply bg-background/30 backdrop-blur-xl border-white/40 shadow-lg;
+  }
+
+  .glass-button {
+    @apply bg-primary/80 backdrop-blur-xl border border-primary/20 shadow-lg;
+  }
+
   .custom-popup .leaflet-popup-content-wrapper {
     @apply bg-background/95 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl;
     backdrop-filter: blur(16px);

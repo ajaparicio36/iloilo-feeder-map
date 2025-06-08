@@ -17,11 +17,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Mail, Lock } from "lucide-react";
+import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const form = useForm<LoginInput>({
@@ -44,12 +45,16 @@ export default function LoginForm() {
       });
 
       const result = await response.json();
+      console.log("Login result:", result);
 
       if (!response.ok) {
         throw new Error(result.error || "Login failed");
       }
 
-      // Redirect to management dashboard
+      // Small delay to ensure cookie is set before redirect
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Always redirect to dashboard - let middleware handle verification logic
       router.push("/management/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -61,7 +66,7 @@ export default function LoginForm() {
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
           Welcome back
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -72,7 +77,7 @@ export default function LoginForm() {
       {error && (
         <Alert
           variant="destructive"
-          className="bg-destructive/10 backdrop-blur-xl border-destructive/20"
+          className="bg-destructive/20 backdrop-blur-xl border-destructive/40 shadow-lg"
         >
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -84,21 +89,23 @@ export default function LoginForm() {
             control={form.control}
             name="email"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-foreground">Email</FormLabel>
+              <FormItem className="space-y-2">
+                <FormLabel className="text-foreground font-medium text-sm">
+                  Email
+                </FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Mail className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground -translate-y-1/2" />
                     <Input
                       {...field}
                       type="email"
                       placeholder="admin@example.com"
-                      className="pl-10 bg-background/50 backdrop-blur-xl border-white/20 focus:border-primary/50"
+                      className="pl-10 h-10 bg-background/30 backdrop-blur-xl border-white/40 focus:border-primary/60 shadow-lg focus:shadow-xl transition-all duration-200 text-sm"
                       disabled={isLoading}
                     />
                   </div>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
@@ -107,28 +114,42 @@ export default function LoginForm() {
             control={form.control}
             name="password"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-foreground">Password</FormLabel>
+              <FormItem className="space-y-2">
+                <FormLabel className="text-foreground font-medium text-sm">
+                  Password
+                </FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Lock className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground -translate-y-1/2" />
                     <Input
                       {...field}
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
-                      className="pl-10 bg-background/50 backdrop-blur-xl border-white/20 focus:border-primary/50"
+                      className="pl-10 pr-10 h-10 bg-background/30 backdrop-blur-xl border-white/40 focus:border-primary/60 shadow-lg focus:shadow-xl transition-all duration-200 text-sm"
                       disabled={isLoading}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
 
           <Button
             type="submit"
-            className="w-full bg-primary/90 hover:bg-primary backdrop-blur-xl"
+            className="w-full h-10 bg-primary/80 hover:bg-primary/90 backdrop-blur-xl shadow-lg hover:shadow-xl transition-all duration-200 border border-primary/20 mt-6 text-sm font-medium"
             disabled={isLoading}
           >
             {isLoading ? (

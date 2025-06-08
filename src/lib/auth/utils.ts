@@ -8,20 +8,34 @@ export interface CurrentUser {
 }
 
 export async function getCurrentUser(): Promise<CurrentUser> {
-  const headersList = await headers();
-  const userId = headersList.get("x-user-id");
-  const email = headersList.get("x-user-email");
-  const isAdmin = headersList.get("x-user-admin") === "true";
+  try {
+    const headersList = await headers();
+    const userId = headersList.get("x-user-id");
+    const email = headersList.get("x-user-email");
+    const isAdminHeader = headersList.get("x-user-admin");
+    const isAdmin = isAdminHeader === "true";
 
-  if (!userId || !email) {
+    console.log("🔍 getCurrentUser headers:", {
+      userId,
+      email,
+      isAdminHeader,
+      isAdmin,
+    });
+
+    if (!userId || !email) {
+      console.log("❌ Missing user headers - throwing UnauthorizedError");
+      throw new UnauthorizedError();
+    }
+
+    return {
+      userId,
+      email,
+      isAdmin,
+    };
+  } catch (error) {
+    console.error("❌ getCurrentUser error:", error);
     throw new UnauthorizedError();
   }
-
-  return {
-    userId,
-    email,
-    isAdmin,
-  };
 }
 
 export async function requireAdmin(): Promise<CurrentUser> {
