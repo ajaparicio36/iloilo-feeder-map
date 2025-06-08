@@ -38,3 +38,43 @@ export async function GET() {
     );
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { type, description, polygon, customArea = false } = body;
+
+    const interruption = await prisma.interruption.create({
+      data: {
+        startTime: new Date(),
+        description,
+        polygon,
+        customArea,
+        type,
+      },
+      include: {
+        interruptedFeeders: {
+          include: {
+            feeder: {
+              include: {
+                feederCoverage: {
+                  include: {
+                    barangay: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(interruption);
+  } catch (error) {
+    console.error("Error creating interruption:", error);
+    return NextResponse.json(
+      { error: "Failed to create interruption" },
+      { status: 500 }
+    );
+  }
+}

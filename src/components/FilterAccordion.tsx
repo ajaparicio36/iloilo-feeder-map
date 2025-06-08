@@ -36,6 +36,8 @@ interface Interruption {
   id: string;
   description: string;
   startTime: string;
+  customArea?: boolean;
+  polygon?: any;
   interruptedFeeders: Array<{
     feeder: {
       id: string;
@@ -241,9 +243,20 @@ export default function FilterAccordion({
                             className="mt-0.5 data-[state=checked]:bg-red-500"
                           />
                           <div>
-                            <p className="font-medium text-sm">
-                              {interruption.description || "Power Interruption"}
-                            </p>
+                            <div className="flex items-center space-x-2">
+                              <p className="font-medium text-sm">
+                                {interruption.description ||
+                                  "Power Interruption"}
+                              </p>
+                              {interruption.customArea && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs border-orange-500/50 text-orange-400"
+                                >
+                                  Custom Area
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground mt-1">
                               Started:{" "}
                               {new Date(
@@ -251,8 +264,9 @@ export default function FilterAccordion({
                               ).toLocaleString()}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Affects {interruption.interruptedFeeders.length}{" "}
-                              feeder(s)
+                              {interruption.customArea
+                                ? "Custom drawn area"
+                                : `Affects ${interruption.interruptedFeeders.length} feeder(s)`}
                             </p>
                           </div>
                         </div>

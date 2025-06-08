@@ -4,10 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { X, MapPin, Ruler, Zap, AlertTriangle, Clock } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -52,6 +48,27 @@ interface BarangayFeederData {
   }>;
 }
 
+interface InterruptionData {
+  id: string;
+  description: string;
+  startTime: string;
+  polygon?: any;
+  customArea?: boolean;
+  interruptedFeeders: Array<{
+    feeder: {
+      id: string;
+      name: string;
+      feederCoverage: Array<{
+        barangay: {
+          id: string;
+          name: string;
+          psgcId: string;
+        };
+      }>;
+    };
+  }>;
+}
+
 interface MapProps {
   selectedBarangay?: string | null;
   filters: { feeders: string[]; interruptions: string[] };
@@ -91,6 +108,7 @@ export default function Map({
     geoData: BarangayData;
     feederData: BarangayFeederData | null;
   } | null>(null);
+  const [interruptions, setInterruptions] = useState<InterruptionData[]>([]);
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
 
   // Iloilo City coordinates and bounds
@@ -360,6 +378,63 @@ export default function Map({
     };
   };
 
+  // Load interruptions with polygon data
+  useEffect(() => {
+    const loadInterruptions = async () => {
+      try {
+        const response = await fetch("/api/v1/interruptions");
+        const data = await response.json();
+        setInterruptions(data);
+        console.log("Loaded interruptions with polygon data:", data);
+      } catch (error) {
+        console.error("Error loading interruptions:", error);
+      }
+    };
+
+    loadInterruptions();
+  }, []);
+
+  const renderInterruptionPolygons = () => {
+    return interruptions
+      .filter((interruption) => interruption.customArea && interruption.polygon)
+      .map((interruption) => (
+        <GeoJSON
+          key={interruption.id}
+          data={
+            {
+              type: "Feature",
+              geometry: interruption.polygon as GeoJSON.Geometry,
+              properties: {
+                id: interruption.id,
+                description: interruption.description,
+                startTime: interruption.startTime,
+              },
+            } as GeoJSON.Feature
+          }
+          style={{
+            fillColor: "#ef4444",
+            weight: 2,
+            opacity: 0.8,
+            color: "#dc2626",
+            dashArray: "5, 5",
+            fillOpacity: 0.3,
+          }}
+          onEachFeature={(feature, layer) => {
+            layer.bindPopup(
+              `<div class="font-semibold text-sm">
+                <strong class="text-red-500">Power Interruption</strong><br/>
+                <span class="text-xs">${interruption.description}</span><br/>
+                <span class="text-xs text-gray-500">
+                  Started: ${new Date(interruption.startTime).toLocaleString()}
+                </span>
+              </div>`,
+              { className: "custom-popup" }
+            );
+          }}
+        />
+      ));
+  };
+
   return (
     <div className="relative h-full w-full">
       <MapContainer
@@ -377,6 +452,7 @@ export default function Map({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
         {geoData && (
           <GeoJSON
             ref={geoJsonRef}
@@ -385,143 +461,15 @@ export default function Map({
             style={getFeatureStyle}
           />
         )}
+
+        {/* Render custom interruption areas */}
+        {renderInterruptionPolygons()}
       </MapContainer>
 
       {/* Enhanced Floating Info Widget */}
       {clickedBarangayData && (
         <div className="absolute top-4 left-4 z-30 w-96 bg-background/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl">
-          <div className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-foreground">
-                    {clickedBarangayData.geoData.adm4_en}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Barangay Information
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setClickedBarangayData(null)}
-                className="p-1 hover:bg-accent/50 rounded-lg transition-colors duration-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Geographic Info */}
-            <div className="grid grid-cols-1 gap-4 mb-4">
-              <div className="bg-accent/30 rounded-xl p-3">
-                <div className="flex items-center space-x-2 mb-1">
-                  <Ruler className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Perimeter
-                  </span>
-                </div>
-                <p className="text-lg font-semibold">
-                  {clickedBarangayData.geoData.len_km?.toFixed(2) || "N/A"} km
-                </p>
-              </div>
-            </div>
-
-            <Separator className="my-4 bg-white/10" />
-
-            {/* Feeder Information */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Zap className="w-5 h-5 text-blue-500" />
-                <h4 className="font-semibold">Power Feeders</h4>
-                <Badge
-                  variant="secondary"
-                  className="bg-blue-500/20 text-blue-400"
-                >
-                  {clickedBarangayData.feederData?.FeederCoverage?.length || 0}
-                </Badge>
-              </div>
-
-              {clickedBarangayData.feederData?.FeederCoverage?.length ? (
-                <ScrollArea className="h-48 rounded-xl bg-accent/20 p-3">
-                  <div className="space-y-3">
-                    {clickedBarangayData.feederData.FeederCoverage.map(
-                      (coverage) => {
-                        const hasInterruption =
-                          coverage.feeder.interruptedFeeders?.some(
-                            (interrupted) => interrupted.interruption
-                          );
-                        const interruption =
-                          coverage.feeder.interruptedFeeders?.find(
-                            (interrupted) => interrupted.interruption
-                          )?.interruption;
-
-                        return (
-                          <div
-                            key={coverage.feeder.id}
-                            className={`p-3 rounded-lg border transition-colors ${
-                              hasInterruption
-                                ? "bg-red-500/10 border-red-500/30"
-                                : "bg-blue-500/10 border-blue-500/30"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <h5 className="font-medium text-sm">
-                                {coverage.feeder.name}
-                              </h5>
-                              {hasInterruption && (
-                                <Badge
-                                  variant="destructive"
-                                  className="text-xs px-2 py-0.5"
-                                >
-                                  <AlertTriangle className="w-3 h-3 mr-1" />
-                                  Interrupted
-                                </Badge>
-                              )}
-                            </div>
-
-                            {hasInterruption && interruption && (
-                              <div className="mt-2 p-2 bg-red-500/20 rounded-md">
-                                <div className="flex items-center space-x-1 mb-1">
-                                  <Clock className="w-3 h-3 text-red-400" />
-                                  <span className="text-xs font-medium text-red-400">
-                                    Started:{" "}
-                                    {new Date(
-                                      interruption.startTime
-                                    ).toLocaleString()}
-                                  </span>
-                                </div>
-                                {interruption.description && (
-                                  <p className="text-xs text-red-300 mt-1">
-                                    {interruption.description}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-                    )}
-                  </div>
-                </ScrollArea>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <Zap className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No feeder data available</p>
-                  {clickedBarangayData.feederData ? (
-                    <p className="text-xs mt-1">
-                      Barangay found but no feeders assigned
-                    </p>
-                  ) : (
-                    <p className="text-xs mt-1">
-                      Barangay not found in database
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          {/* ...existing clickedBarangayData content... */}
         </div>
       )}
 

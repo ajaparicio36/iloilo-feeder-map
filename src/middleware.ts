@@ -8,6 +8,7 @@ const protectedRoutes = [
   "/management/interruptions",
   "/management/barangays",
   "/management/feeder-coverage",
+  "/api/v1/admin", // Add admin API routes
 ];
 const publicManagementRoutes = [
   "/management",
@@ -20,6 +21,9 @@ export async function middleware(request: NextRequest) {
 
   // Check if this is an API route
   const isApiRoute = pathname.startsWith("/api");
+
+  // Check if this is an admin API route
+  const isAdminApiRoute = pathname.startsWith("/api/v1/admin");
 
   // Check if the current path is protected
   const isProtectedRoute = protectedRoutes.some((route) =>
@@ -38,8 +42,11 @@ export async function middleware(request: NextRequest) {
   const isVerificationPendingPage =
     pathname === "/management/verification-pending";
 
-  // If accessing protected route without token
-  if ((isProtectedRoute || isAdminRoute) && !token) {
+  // If accessing protected route or admin API route without token
+  if ((isProtectedRoute || isAdminRoute || isAdminApiRoute) && !token) {
+    if (isAdminApiRoute) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/management", request.nextUrl));
   }
 
@@ -63,8 +70,14 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      // If accessing admin routes without admin privileges (not verified)
-      if (isAdminRoute && !payload.isAdmin) {
+      // If accessing admin routes or admin API routes without admin privileges
+      if ((isAdminRoute || isAdminApiRoute) && !payload.isAdmin) {
+        if (isAdminApiRoute) {
+          return NextResponse.json(
+            { error: "Admin access required" },
+            { status: 403 }
+          );
+        }
         return NextResponse.redirect(
           new URL("/management/verification-pending", request.nextUrl)
         );
@@ -89,11 +102,17 @@ export async function middleware(request: NextRequest) {
         },
       });
     } catch (error) {
-      // If token is expired or invalid, clear cookie and redirect to management login
+      // If token is expired or invalid
       if (
         error instanceof TokenExpiredError ||
         error instanceof InvalidTokenError
       ) {
+        if (isAdminApiRoute) {
+          return NextResponse.json(
+            { error: "Token expired or invalid" },
+            { status: 401 }
+          );
+        }
         const response = NextResponse.redirect(
           new URL("/management", request.nextUrl)
         );

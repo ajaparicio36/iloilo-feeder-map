@@ -60,11 +60,20 @@ model Interruption {
   startTime          DateTime
   endTime            DateTime?
   description        String?
+  polygon            Json? // Store GeoJSON polygon data
+  customArea         Boolean              @default(false) // Flag to indicate if this is a custom drawn area
+  type               InterruptionType
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   interruptedFeeders InterruptedFeeders[]
 
   @@map("interruptions")
+}
+
+enum InterruptionType {
+  SCHEDULED
+  UNSCHEDULED
+  EMERGENCY
 }
 
 model InterruptedFeeders {
