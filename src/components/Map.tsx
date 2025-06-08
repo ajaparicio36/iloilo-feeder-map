@@ -330,6 +330,29 @@ export default function Map({
         {renderInterruptionPolygons()}
       </MapContainer>
 
+      {/* Data Credits */}
+      <div className="absolute bottom-4 right-4 z-20 bg-background/80 backdrop-blur-sm border border-white/10 rounded-lg shadow-lg px-3 py-2 text-xs text-muted-foreground max-w-56">
+        <div className="space-y-1">
+          <div>
+            <span className="font-medium">Barangay shapefiles by</span>
+            <br />
+            <a
+              href="https://github.com/altcoder/philippines-psgc-shapefiles"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              github.com/altcoder/philippines-psgc-shapefiles
+            </a>
+          </div>
+          <div>
+            <span className="font-medium">Feeder coverage data by</span>
+            <br />
+            <span className="text-primary">MORE Power</span>
+          </div>
+        </div>
+      </div>
+
       {/* Barangay Details Panel */}
       <BarangayDetailsPanel
         data={clickedBarangayData}
