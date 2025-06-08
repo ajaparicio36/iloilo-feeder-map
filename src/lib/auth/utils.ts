@@ -15,15 +15,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     const isAdminHeader = headersList.get("x-user-admin");
     const isAdmin = isAdminHeader === "true";
 
-    console.log("🔍 getCurrentUser headers:", {
-      userId,
-      email,
-      isAdminHeader,
-      isAdmin,
-    });
-
     if (!userId || !email) {
-      console.log("❌ Missing user headers - throwing UnauthorizedError");
       throw new UnauthorizedError();
     }
 
@@ -32,8 +24,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
       email,
       isAdmin,
     };
-  } catch (error) {
-    console.error("❌ getCurrentUser error:", error);
+  } catch {
     throw new UnauthorizedError();
   }
 }

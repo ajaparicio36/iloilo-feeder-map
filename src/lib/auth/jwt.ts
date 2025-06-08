@@ -12,9 +12,6 @@ export interface JWTPayload {
 }
 
 export async function signToken(payload: JWTPayload): Promise<string> {
-  console.log("🔏 Signing token with payload:", payload);
-  console.log("🔏 Using SECRET:", !!SECRET);
-
   try {
     const token = await new SignJWT(payload as any)
       .setProtectedHeader({ alg: "HS256" })
@@ -22,21 +19,15 @@ export async function signToken(payload: JWTPayload): Promise<string> {
       .setExpirationTime("7d")
       .sign(SECRET);
 
-    console.log("🔏 Generated token:", token.substring(0, 20) + "...");
     return token;
   } catch (error) {
-    console.error("❌ Token signing error:", error);
     throw error;
   }
 }
 
 export async function verifyToken(token: string): Promise<JWTPayload> {
   try {
-    console.log("🔑 Verifying token:", token.substring(0, 20) + "...");
-    console.log("🔑 Using SECRET:", !!SECRET);
-
     const { payload } = await jwtVerify(token, SECRET);
-    console.log("✅ Token decoded successfully:", payload);
 
     // Type assertion to our custom payload type
     const customPayload = payload as unknown as JWTPayload;
@@ -52,12 +43,7 @@ export async function verifyToken(token: string): Promise<JWTPayload> {
 
     return customPayload;
   } catch (error: unknown) {
-    console.error("❌ JWT verification error:", error);
-
     if (error instanceof Error) {
-      console.error("❌ Error type:", error.constructor.name);
-      console.error("❌ Error message:", error.message);
-
       // Check for JWT expired error
       if (
         error.message.includes("expired") ||

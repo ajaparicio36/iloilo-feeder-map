@@ -45,7 +45,6 @@ export default function LoginForm() {
       });
 
       const result = await response.json();
-      console.log("Login result:", result);
 
       if (!response.ok) {
         throw new Error(result.error || "Login failed");

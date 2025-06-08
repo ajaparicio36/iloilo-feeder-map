@@ -10,15 +10,11 @@ export async function GET() {
       isAdmin: true,
     };
 
-    console.log("🧪 Testing JWT with payload:", testPayload);
-
     // Sign token
     const token = await signToken(testPayload);
-    console.log("🧪 Generated token:", token);
 
     // Verify token
     const decoded = await verifyToken(token);
-    console.log("🧪 Decoded token:", decoded);
 
     return NextResponse.json({
       success: true,
@@ -28,7 +24,6 @@ export async function GET() {
       match: JSON.stringify(testPayload) === JSON.stringify(decoded),
     });
   } catch (error) {
-    console.error("🧪 JWT test failed:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       {

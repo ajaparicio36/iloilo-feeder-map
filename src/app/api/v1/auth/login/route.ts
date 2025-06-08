@@ -44,11 +44,6 @@ export async function POST(request: NextRequest) {
       isAdmin: user.isAdmin,
     });
 
-    console.log(
-      "🍪 Setting cookie with token:",
-      token.substring(0, 20) + "..."
-    );
-
     // Set cookie using next/headers - clear first, then set new token
     const cookieStore = await cookies();
 
@@ -70,8 +65,6 @@ export async function POST(request: NextRequest) {
       path: "/",
     });
 
-    console.log("🍪 Cookie should be set now");
-
     return NextResponse.json({
       message: "Login successful",
       user: {
@@ -81,8 +74,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Login error:", error);
-
     if (error instanceof InvalidCredentialsError) {
       return NextResponse.json(
         { error: error.message },

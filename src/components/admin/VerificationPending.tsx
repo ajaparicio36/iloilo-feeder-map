@@ -33,7 +33,7 @@ export default function VerificationPending() {
         }
       }
     } catch (error) {
-      console.error("Error checking verification status:", error);
+      // console.error("Error checking verification status:", error);
     } finally {
       setIsChecking(false);
     }
@@ -47,7 +47,7 @@ export default function VerificationPending() {
       });
       router.push("/management");
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Error logging out:", error);
     } finally {
       setIsLoggingOut(false);
     }
