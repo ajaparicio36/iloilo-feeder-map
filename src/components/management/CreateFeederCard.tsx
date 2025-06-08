@@ -20,7 +20,7 @@ interface Feeder {
   name: string;
   _count: {
     feederCoverage: number;
-    interruptedFeeders: number;
+    activeInterruptions: number;
   };
 }
 
@@ -137,8 +137,15 @@ export default function CreateFeederCard() {
                     <Badge variant="secondary" className="text-xs">
                       {feeder._count.feederCoverage} barangays
                     </Badge>
-                    <Badge variant="destructive" className="text-xs">
-                      {feeder._count.interruptedFeeders} interruptions
+                    <Badge
+                      variant={
+                        feeder._count.activeInterruptions === 0
+                          ? "default"
+                          : "destructive"
+                      }
+                      className="text-xs"
+                    >
+                      {feeder._count.activeInterruptions} active interruptions
                     </Badge>
                   </div>
                 </div>

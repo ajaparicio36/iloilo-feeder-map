@@ -13,7 +13,7 @@ export const GET = async (request: NextRequest) => {
   try {
     await requireAdmin();
 
-    const searchParams = request.nextUrl.searchParams;
+    const { searchParams } = new URL(request.url);
     const queryResult = interruptionQuerySchema.safeParse({
       search: searchParams.get("search") || undefined,
       page: searchParams.get("page") || "1",

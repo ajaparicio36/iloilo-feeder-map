@@ -43,7 +43,6 @@ export const GET = async (request: NextRequest) => {
           _count: {
             select: {
               feederCoverage: true,
-              interruptedFeeders: true,
             },
           },
         },
@@ -51,8 +50,30 @@ export const GET = async (request: NextRequest) => {
       prisma.feeder.count({ where }),
     ]);
 
+    const now = new Date();
+    const feedersWithActiveCounts = await Promise.all(
+      feeders.map(async (feeder) => {
+        const activeInterruptionsCount = await prisma.interruptedFeeders.count({
+          where: {
+            feederId: feeder.id,
+            interruption: {
+              OR: [{ endTime: null }, { endTime: { gt: now } }],
+            },
+          },
+        });
+
+        return {
+          ...feeder,
+          _count: {
+            ...feeder._count,
+            activeInterruptions: activeInterruptionsCount,
+          },
+        };
+      })
+    );
+
     return NextResponse.json({
-      data: feeders,
+      data: feedersWithActiveCounts,
       pagination: {
         page,
         limit,

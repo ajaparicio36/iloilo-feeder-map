@@ -22,22 +22,49 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface UserData {
+  userId: string;
+  email: string;
+  isAdmin: boolean;
+}
+
 export default function AdminNavbar() {
   const pathname = usePathname();
-  const [userEmail, setUserEmail] = useState<string>("");
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    // Get user email from localStorage or API
-    const email = localStorage.getItem("admin_email") || "admin@example.com";
-    setUserEmail(email);
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch("/api/v1/auth/user");
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setUserData(result.data);
+          } else {
+            // Redirect to login if not authenticated
+            window.location.href = "/admin/login";
+          }
+        } else {
+          // Redirect to login on auth failure
+          window.location.href = "/admin/login";
+        }
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+        window.location.href = "/admin/login";
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
   }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
       await fetch("/api/v1/admin/logout", { method: "POST" });
-      localStorage.removeItem("admin_email");
       window.location.href = "/admin/login";
     } catch (error) {
       console.error("Logout error:", error);
@@ -62,6 +89,35 @@ export default function AdminNavbar() {
       icon: Zap,
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-white/20 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo and Brand */}
+            <Link
+              href="/management/dashboard"
+              className="flex items-center space-x-3"
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-sm">IM</span>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  Iloilo Feeder Map
+                </h1>
+                <p className="text-sm text-muted-foreground">Admin Panel</p>
+              </div>
+            </Link>
+            <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const userEmail = userData?.email || "";
 
   return (
     <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-xl border-b border-white/20 shadow-lg">
@@ -150,17 +206,6 @@ export default function AdminNavbar() {
                 <Separator className="bg-white/20" />
 
                 <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-background/50"
-                    onClick={() => {
-                      /* Add profile functionality if needed */
-                    }}
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Profile Settings
-                  </Button>
-
                   <Button
                     variant="ghost"
                     className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-background/50"

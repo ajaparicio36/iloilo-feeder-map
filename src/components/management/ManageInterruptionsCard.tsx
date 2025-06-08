@@ -1,19 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, MapPin, Zap, Building } from "lucide-react";
 import CreateFeederCard from "./CreateFeederCard";
 import CreateBarangayCard from "./CreateBarangayCard";
-import CreateInterruptionCard from "./CreateInterruptionCard";
 
 interface Stats {
   totalFeeders: number;
@@ -37,7 +29,7 @@ export default function ManageInterruptionsCard() {
         const [feedersRes, barangaysRes, interruptionsRes] = await Promise.all([
           fetch("/api/v1/admin/feeder?limit=1"),
           fetch("/api/v1/admin/barangay?limit=1"),
-          fetch("/api/v1/admin/interruption?limit=1"),
+          fetch("/api/v1/interruptions"),
         ]);
 
         if (feedersRes.ok) {
@@ -58,21 +50,29 @@ export default function ManageInterruptionsCard() {
 
         if (interruptionsRes.ok) {
           const interruptionsData = await interruptionsRes.json();
+          // Since /api/v1/interruptions returns active interruptions directly
+          const activeCount = Array.isArray(interruptionsData)
+            ? interruptionsData.length
+            : 0;
+
           setStats((prev) => ({
             ...prev,
-            totalInterruptions: interruptionsData.pagination.total,
+            activeInterruptions: activeCount,
+            totalInterruptions: activeCount, // For now, use same value
           }));
 
-          // Get active interruptions
-          const activeRes = await fetch(
-            "/api/v1/admin/interruption?status=active&limit=1"
-          );
-          if (activeRes.ok) {
-            const activeData = await activeRes.json();
-            setStats((prev) => ({
-              ...prev,
-              activeInterruptions: activeData.pagination.total,
-            }));
+          // Try to get total interruptions from admin endpoint if it exists
+          try {
+            const totalRes = await fetch("/api/v1/admin/interruption?limit=1");
+            if (totalRes.ok) {
+              const totalData = await totalRes.json();
+              setStats((prev) => ({
+                ...prev,
+                totalInterruptions: totalData.pagination?.total || activeCount,
+              }));
+            }
+          } catch {
+            // If admin endpoint doesn't exist, keep using active count
           }
         }
       } catch (error) {
@@ -183,16 +183,9 @@ export default function ManageInterruptionsCard() {
 
         {/* Management Tabs */}
         <Card className="bg-background/80 backdrop-blur-xl border border-white/20 shadow-2xl">
-          <Tabs defaultValue="interruptions" className="w-full">
+          <Tabs defaultValue="feeders" className="w-full">
             <CardHeader>
-              <TabsList className="grid w-full grid-cols-3 bg-background/50">
-                <TabsTrigger
-                  value="interruptions"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                >
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Interruptions
-                </TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-background/50">
                 <TabsTrigger
                   value="feeders"
                   className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
@@ -211,10 +204,6 @@ export default function ManageInterruptionsCard() {
             </CardHeader>
 
             <CardContent className="p-0">
-              <TabsContent value="interruptions" className="p-6 pt-0">
-                <CreateInterruptionCard />
-              </TabsContent>
-
               <TabsContent value="feeders" className="p-6 pt-0">
                 <CreateFeederCard />
               </TabsContent>
