@@ -5,12 +5,7 @@ import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { BarangayDetailsPanel } from "./map/BarangayDetailsPanel";
-import {
-  MapProps,
-  ClickedBarangayData,
-  BarangayData,
-  InterruptionData,
-} from "@/types/map";
+import { MapProps, ClickedBarangayData } from "@/types/map";
 import {
   fixEncoding,
   hasActiveInterruption,
@@ -102,7 +97,7 @@ export default function Map({
           }
           setHoveredBarangay(null);
         },
-        click: (e) => {
+        click: () => {
           setClickedBarangayData({
             geoData: { ...properties, adm4_en: displayName },
             feederData: feederData,
@@ -212,7 +207,7 @@ export default function Map({
 
     filteredInterruptions
       .filter((interruption) => interruption.customArea && interruption.polygon)
-      .forEach((interruption, interruptionIndex) => {
+      .forEach((interruption) => {
         const displayDescription =
           interruption.description || "No extra description";
         const typeLabel =

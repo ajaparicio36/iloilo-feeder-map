@@ -576,7 +576,7 @@ export default function CreateInterruptionForm({
             {/* No results message */}
             {filteredFeeders.length === 0 && feederSearchTerm && (
               <div className="text-center py-4 text-muted-foreground">
-                No feeders found matching "{feederSearchTerm}"
+                No feeders found matching &quot;{feederSearchTerm}&quot;
               </div>
             )}
 

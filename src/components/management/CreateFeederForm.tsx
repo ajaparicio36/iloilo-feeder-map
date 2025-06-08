@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,45 +34,48 @@ export default function CreateFeederForm({
 
   const isEditing = !!initialData?.id;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setIsLoading(true);
 
-    try {
-      const url = isEditing
-        ? `/api/v1/admin/feeder/${initialData.id}`
-        : "/api/v1/admin/feeder";
+      try {
+        const url = isEditing
+          ? `/api/v1/admin/feeder/${initialData.id}`
+          : "/api/v1/admin/feeder";
 
-      const method = isEditing ? "PUT" : "POST";
+        const method = isEditing ? "PUT" : "POST";
 
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to save feeder");
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to save feeder");
+        }
+
+        toast.success(
+          isEditing
+            ? "Feeder updated successfully"
+            : "Feeder created successfully"
+        );
+
+        if (!isEditing) {
+          setName("");
+        }
+
+        onSuccess?.();
+      } catch {
+        toast.error("Failed to save feeder");
+      } finally {
+        setIsLoading(false);
       }
-
-      toast.success(
-        isEditing
-          ? "Feeder updated successfully"
-          : "Feeder created successfully"
-      );
-
-      if (!isEditing) {
-        setName("");
-      }
-
-      onSuccess?.();
-    } catch {
-      toast.error("Failed to save feeder");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [isEditing, initialData?.id, name, onSuccess]
+  );
 
   return (
     <Card className="bg-background/80 backdrop-blur-xl border border-white/20 shadow-2xl">

@@ -22,10 +22,11 @@ export async function POST() {
       { status: 200 }
     );
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unexpected error";
     return NextResponse.json(
       {
         success: false,
-        error: "Internal server error",
+        error: message,
       },
       { status: 500 }
     );

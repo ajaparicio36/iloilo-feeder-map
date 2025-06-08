@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { NextResponse } from "next/server";

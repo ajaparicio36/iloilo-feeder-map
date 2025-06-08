@@ -30,7 +30,6 @@ interface AdminMapProps {
 
 export default function AdminMap({
   geoData,
-  barangayData = [],
   onPolygonDrawn,
   existingPolygons = [],
 }: AdminMapProps) {
@@ -50,7 +49,7 @@ export default function AdminMap({
     if (mapRef && existingPolygonsRef.current && existingPolygons.length > 0) {
       existingPolygonsRef.current.clearLayers();
 
-      existingPolygons.forEach((polygon, index) => {
+      existingPolygons.forEach((polygon) => {
         const layer = L.geoJSON(polygon, {
           style: {
             color: "#8b5cf6",

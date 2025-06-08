@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth/utils";
 import {
   createInterruptionSchema,
   interruptionQuerySchema,
 } from "@/lib/zod/interruption.zod";
-import { ValidationError } from "@/lib/auth/errors";
 
 const prisma = new PrismaClient();
 

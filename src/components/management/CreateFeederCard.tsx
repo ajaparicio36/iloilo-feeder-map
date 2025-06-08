@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -48,7 +48,7 @@ export default function CreateFeederCard() {
     name: string;
   }>({ open: false, id: "", name: "" });
 
-  const loadFeeders = async () => {
+  const loadFeeders = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/v1/admin/feeder?search=${searchTerm}&limit=50`
@@ -62,11 +62,11 @@ export default function CreateFeederCard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchTerm]);
 
   useEffect(() => {
     loadFeeders();
-  }, [searchTerm]);
+  }, [searchTerm, loadFeeders]);
 
   const handleDelete = async (id: string, name: string) => {
     try {
@@ -229,9 +229,11 @@ export default function CreateFeederCard() {
             <AlertDialogTitle>Delete Feeder</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete{" "}
-              <span className="font-semibold">"{deleteDialog.name}"</span>? This
-              action cannot be undone and will remove all associated coverage
-              areas.
+              <span className="font-semibold">
+                &quot;{deleteDialog.name}&quot;
+              </span>
+              ? This action cannot be undone and will remove all associated
+              coverage areas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

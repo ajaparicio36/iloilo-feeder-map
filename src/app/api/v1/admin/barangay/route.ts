@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth/utils";
 import {
   createBarangaySchema,
@@ -63,12 +63,9 @@ export const GET = async (request: NextRequest) => {
         totalPages: Math.ceil(total / limit),
       },
     });
-  } catch (error: any) {
-    if (error.statusCode) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     return NextResponse.json(
       { error: "Internal server error" },
@@ -117,12 +114,9 @@ export const POST = async (request: NextRequest) => {
       { message: "Barangay created successfully", data: barangay },
       { status: 201 }
     );
-  } catch (error: any) {
-    if (error.statusCode) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     return NextResponse.json(
       { error: "Internal server error" },

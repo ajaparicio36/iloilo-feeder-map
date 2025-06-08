@@ -93,7 +93,7 @@ export function BarangayDetailsPanel({
 
             {feederData?.FeederCoverage?.length ? (
               <div className="space-y-3">
-                {feederData.FeederCoverage.map((coverage, index) => {
+                {feederData.FeederCoverage.map((coverage) => {
                   const feeder = coverage.feeder;
                   if (!feeder) return null;
 

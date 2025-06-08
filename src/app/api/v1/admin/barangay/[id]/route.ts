@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth/utils";
 import { updateBarangaySchema } from "@/lib/zod/barangay.zod";
 import { ValidationError } from "@/lib/auth/errors";
@@ -36,17 +36,10 @@ export const GET = async (
     }
 
     return NextResponse.json({ data: barangay });
-  } catch (error: any) {
-    if (error.statusCode) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }
@@ -100,23 +93,10 @@ export const PUT = async (
       message: "Barangay updated successfully",
       data: barangay,
     });
-  } catch (error: any) {
-    if (error.code === "P2025") {
-      return NextResponse.json(
-        { error: "Barangay not found" },
-        { status: 404 }
-      );
-    }
-    if (error.statusCode) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }

@@ -19,9 +19,6 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("auth-token")?.value;
 
-  // Check if this is an API route
-  const isApiRoute = pathname.startsWith("/api");
-
   // Check if this is an admin API route
   const isAdminApiRoute = pathname.startsWith("/api/v1/admin");
 

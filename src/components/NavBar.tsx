@@ -53,14 +53,6 @@ export default function NavBar({
     setFilteredBarangays([]);
   };
 
-  const handleFeederFilter = (feederIds: string[]) => {
-    // This will be handled by onFilterChange
-  };
-
-  const handleInterruptionFilter = (interruptionIds: string[]) => {
-    // This will be handled by onFilterChange
-  };
-
   return (
     <>
       <nav className="fixed top-0 left-0 right-0 z-40 h-20 border-b border-white/10 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
@@ -146,11 +138,7 @@ export default function NavBar({
       {/* Filter Accordion */}
       {showFilters && (
         <div className="fixed top-24 right-6 z-50">
-          <FilterAccordion
-            onFeederFilter={handleFeederFilter}
-            onInterruptionFilter={handleInterruptionFilter}
-            onFilterChange={onFilterChange}
-          />
+          <FilterAccordion onFilterChange={onFilterChange} />
         </div>
       )}
     </>

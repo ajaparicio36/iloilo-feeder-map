@@ -1,4 +1,4 @@
-import { BarangayFeederData, BarangayData } from "@/types/map";
+import { BarangayFeederData } from "@/types/map";
 
 export const fixEncoding = (text: string): string => {
   if (!text) return text;

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as argon2 from "argon2";
 import { cookies } from "next/headers";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { registerSchema } from "@/lib/zod/register.zod";
 import { signToken } from "@/lib/auth/jwt";
-import { EmailAlreadyExistsError, ValidationError } from "@/lib/auth/errors";
+import { EmailAlreadyExistsError } from "@/lib/auth/errors";
 
 const prisma = new PrismaClient();
 

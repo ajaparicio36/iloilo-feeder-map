@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth/utils";
 
 const prisma = new PrismaClient();
@@ -39,17 +39,10 @@ export const DELETE = async (
     return NextResponse.json({
       message: `Coverage for ${coverage.barangay.name} removed successfully`,
     });
-  } catch (error: any) {
-    if (error.code === "P2025") {
-      return NextResponse.json(
-        { error: "Coverage not found" },
-        { status: 404 }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }

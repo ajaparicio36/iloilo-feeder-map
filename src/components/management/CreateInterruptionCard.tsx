@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -60,7 +60,7 @@ export default function CreateInterruptionCard() {
     description: string;
   }>({ open: false, id: "", description: "" });
 
-  const loadInterruptions = async () => {
+  const loadInterruptions = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/v1/admin/interruption?search=${searchTerm}&limit=50`
@@ -74,13 +74,13 @@ export default function CreateInterruptionCard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchTerm]);
 
   useEffect(() => {
     loadInterruptions();
-  }, [searchTerm]);
+  }, [searchTerm, loadInterruptions]);
 
-  const handleDelete = async (id: string, description: string) => {
+  const handleDelete = async (id: string) => {
     try {
       const response = await fetch(`/api/v1/admin/interruption/${id}`, {
         method: "DELETE",
@@ -330,9 +330,7 @@ export default function CreateInterruptionCard() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() =>
-                handleDelete(deleteDialog.id, deleteDialog.description)
-              }
+              onClick={() => handleDelete(deleteDialog.id)}
               className="bg-destructive hover:bg-destructive/90"
             >
               Delete

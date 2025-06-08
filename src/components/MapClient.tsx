@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import NavBar from "./NavBar";
 
@@ -52,6 +52,11 @@ export default function MapClient() {
   const [barangayNames, setBarangayNames] = useState<string[]>([]);
   const [barangayData, setBarangayData] = useState<any[]>([]);
   const [interruptionsData, setInterruptionsData] = useState<any[]>([]);
+
+  const updateLoadingState = useCallback((key: keyof typeof loadingStates) => {
+    console.log(`Updating loading state: ${key} = true`);
+    setLoadingStates((prev) => ({ ...prev, [key]: true }));
+  }, []);
 
   // Load all data immediately when component mounts
   useEffect(() => {
@@ -193,7 +198,7 @@ export default function MapClient() {
     };
 
     loadAllData();
-  }, []);
+  }, [updateLoadingState]);
 
   // Track loading progress
   useEffect(() => {
@@ -208,11 +213,6 @@ export default function MapClient() {
       }, 500);
     }
   }, [loadingStates, isLoading]);
-
-  const updateLoadingState = (key: keyof typeof loadingStates) => {
-    console.log(`Updating loading state: ${key} = true`);
-    setLoadingStates((prev) => ({ ...prev, [key]: true }));
-  };
 
   if (isLoading) {
     return (

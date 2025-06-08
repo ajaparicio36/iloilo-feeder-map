@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth/utils";
 import { createFeederSchema, feederQuerySchema } from "@/lib/zod/feeder.zod";
 import { ValidationError } from "@/lib/auth/errors";
@@ -81,17 +81,10 @@ export const GET = async (request: NextRequest) => {
         totalPages: Math.ceil(total / limit),
       },
     });
-  } catch (error: any) {
-    if (error.statusCode) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }
@@ -126,17 +119,10 @@ export const POST = async (request: NextRequest) => {
       { message: "Feeder created successfully", data: feeder },
       { status: 201 }
     );
-  } catch (error: any) {
-    if (error.statusCode) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }

@@ -10,7 +10,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { Filter, Zap, AlertTriangle, MapPin } from "lucide-react";
 
 interface Feeder {
@@ -56,8 +55,6 @@ interface Interruption {
 }
 
 interface FilterAccordionProps {
-  onFeederFilter: (feederIds: string[]) => void;
-  onInterruptionFilter: (interruptionIds: string[]) => void;
   onFilterChange: (filters: {
     feeders: string[];
     interruptions: string[];
@@ -65,8 +62,6 @@ interface FilterAccordionProps {
 }
 
 export default function FilterAccordion({
-  onFeederFilter,
-  onInterruptionFilter,
   onFilterChange,
 }: FilterAccordionProps) {
   const [feeders, setFeeders] = useState<Feeder[]>([]);
@@ -111,7 +106,6 @@ export default function FilterAccordion({
       : [...selectedFeeders, feederId];
 
     setSelectedFeeders(newSelected);
-    onFeederFilter(newSelected);
     onFilterChange({
       feeders: newSelected,
       interruptions: selectedInterruptions,
@@ -124,7 +118,6 @@ export default function FilterAccordion({
       : [...selectedInterruptions, interruptionId];
 
     setSelectedInterruptions(newSelected);
-    onInterruptionFilter(newSelected);
     onFilterChange({ feeders: selectedFeeders, interruptions: newSelected });
   };
 

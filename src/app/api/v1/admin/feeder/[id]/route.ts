@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { requireAdmin } from "@/lib/auth/utils";
 import { updateFeederSchema } from "@/lib/zod/feeder.zod";
 import { ValidationError } from "@/lib/auth/errors";
@@ -41,17 +41,10 @@ export const GET = async (
     }
 
     return NextResponse.json({ data: feeder });
-  } catch (error: any) {
-    if (error.statusCode) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }
@@ -91,20 +84,10 @@ export const PUT = async (
       message: "Feeder updated successfully",
       data: feeder,
     });
-  } catch (error: any) {
-    if (error.code === "P2025") {
-      return NextResponse.json({ error: "Feeder not found" }, { status: 404 });
-    }
-    if (error.statusCode) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: error.statusCode }
-      );
-    }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }

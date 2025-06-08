@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -89,7 +89,7 @@ export default function FeederDetailsCard({
     barangayName: string;
   }>({ open: false, coverageId: "", barangayName: "" });
 
-  const loadFeederDetails = async () => {
+  const loadFeederDetails = useCallback(async () => {
     try {
       const [feederRes, coverageRes] = await Promise.all([
         fetch(`/api/v1/admin/feeder/${feederId}`),
@@ -111,11 +111,11 @@ export default function FeederDetailsCard({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [feederId]);
 
   useEffect(() => {
     loadFeederDetails();
-  }, [feederId]);
+  }, [feederId, loadFeederDetails]);
 
   const handleAddCoverage = async () => {
     if (!selectedBarangayId) {
@@ -150,10 +150,7 @@ export default function FeederDetailsCard({
     }
   };
 
-  const handleRemoveCoverage = async (
-    coverageId: string,
-    barangayName: string
-  ) => {
+  const handleRemoveCoverage = async (coverageId: string) => {
     try {
       const response = await fetch(
         `/api/v1/admin/feeder/${feederId}/coverage/${coverageId}`,
@@ -278,7 +275,9 @@ export default function FeederDetailsCard({
                               )}
                             />
                             <div className="flex flex-col">
-                              <span className="font-medium">{barangay.name}</span>
+                              <span className="font-medium">
+                                {barangay.name}
+                              </span>
                               <span className="text-xs text-muted-foreground">
                                 PSGC: {barangay.psgcId}
                               </span>
@@ -351,23 +350,23 @@ export default function FeederDetailsCard({
         </CardContent>
       </Card>
 
-      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => 
-        setDeleteDialog(prev => ({ ...prev, open }))
-      }>
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog((prev) => ({ ...prev, open }))}
+      >
         <AlertDialogContent className="bg-background/95 backdrop-blur-xl border border-white/20">
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Coverage</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to remove coverage for{" "}
-              <span className="font-semibold">{deleteDialog.barangayName}</span>? This action cannot be undone.
+              <span className="font-semibold">{deleteDialog.barangayName}</span>
+              ? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() =>
-                handleRemoveCoverage(deleteDialog.coverageId, deleteDialog.barangayName)
-              }
+              onClick={() => handleRemoveCoverage(deleteDialog.coverageId)}
               className="bg-destructive hover:bg-destructive/90"
             >
               Remove

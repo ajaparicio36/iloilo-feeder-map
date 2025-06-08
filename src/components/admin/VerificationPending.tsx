@@ -1,17 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  ArrowLeft,
-  LogOut,
-} from "lucide-react";
+import { Clock, CheckCircle, AlertCircle, LogOut } from "lucide-react";
 
 export default function VerificationPending() {
   const [isChecking, setIsChecking] = useState(false);
@@ -32,8 +26,8 @@ export default function VerificationPending() {
           router.push("/management/dashboard");
         }
       }
-    } catch (error) {
-      // console.error("Error checking verification status:", error);
+    } catch {
+      console.warn("Error checking verification status");
     } finally {
       setIsChecking(false);
     }

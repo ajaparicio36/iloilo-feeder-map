@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify, type JWTPayload as JoseJWTPayload } from "jose";
+import { SignJWT, jwtVerify } from "jose";
 import { TokenExpiredError, InvalidTokenError } from "./errors";
 
 const SECRET = new TextEncoder().encode(

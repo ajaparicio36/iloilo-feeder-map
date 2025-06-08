@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as argon2 from "argon2";
 import { cookies } from "next/headers";
-import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 import { signToken } from "@/lib/auth/jwt";
 import { loginSchema } from "@/lib/zod/login.zod";
 import { InvalidCredentialsError } from "@/lib/auth/errors";

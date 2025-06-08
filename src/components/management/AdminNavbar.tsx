@@ -11,15 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import {
-  LayoutDashboard,
-  Zap,
-  Building,
-  MapPin,
-  LogOut,
-  User,
-  ChevronDown,
-} from "lucide-react";
+import { LayoutDashboard, Zap, LogOut, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UserData {
