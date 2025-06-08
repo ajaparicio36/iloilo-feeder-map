@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@/generated/prisma";
 
 const prisma = new PrismaClient();
 
-export async function GET() {
+export const GET = async (request: NextRequest) => {
   try {
     const barangays = await prisma.barangay.findMany({
+      orderBy: { name: "asc" },
       include: {
         FeederCoverage: {
           include: {
@@ -14,11 +15,22 @@ export async function GET() {
                 interruptedFeeders: {
                   where: {
                     interruption: {
-                      endTime: null,
+                      OR: [
+                        { endTime: null }, // No end time set
+                        { endTime: { gt: new Date() } }, // End time is in the future
+                      ],
                     },
                   },
                   include: {
-                    interruption: true,
+                    interruption: {
+                      select: {
+                        id: true,
+                        description: true,
+                        startTime: true,
+                        endTime: true,
+                        type: true,
+                      },
+                    },
                   },
                 },
               },
@@ -28,20 +40,36 @@ export async function GET() {
       },
     });
 
-    console.log(`📊 API: Returning ${barangays.length} barangays`);
-    console.log(`📊 Sample barangay:`, {
-      name: barangays[0]?.name,
-      psgcId: barangays[0]?.psgcId,
-      psgcType: typeof barangays[0]?.psgcId,
-      feeders: barangays[0]?.FeederCoverage?.length || 0,
+    // Debug logging to check data structure
+    console.log("Barangays API Response:", {
+      total: barangays.length,
+      withCoverage: barangays.filter(
+        (b) => b.FeederCoverage && b.FeederCoverage.length > 0
+      ).length,
+      sampleWithCoverage: barangays.find(
+        (b) => b.FeederCoverage && b.FeederCoverage.length > 0
+      ),
+      // Sample some PSGCs for debugging
+      samplePsgcs: barangays.slice(0, 5).map((b) => ({
+        name: b.name,
+        psgc: b.psgcId,
+      })),
+      // Check for interrupted feeders
+      withInterruptions: barangays.filter((b) =>
+        b.FeederCoverage.some((fc) =>
+          fc.feeder.interruptedFeeders.some((inf) => inf.interruption)
+        )
+      ).length,
     });
 
     return NextResponse.json(barangays);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching barangays:", error);
     return NextResponse.json(
-      { error: "Failed to fetch barangays" },
+      { error: "Internal server error" },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
-}
+};

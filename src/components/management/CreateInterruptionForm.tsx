@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { X, MapPin, Layers, ArrowLeft } from "lucide-react";
+import { X, MapPin, Layers, ArrowLeft, Search } from "lucide-react";
 import { toast } from "sonner";
 import AdminMapClient from "./AdminMapClient";
 
@@ -34,6 +34,12 @@ interface Barangay {
   id: string;
   name: string;
   psgcId: string;
+  FeederCoverage?: Array<{
+    feeder: {
+      id: string;
+      name: string;
+    };
+  }>;
 }
 
 interface InterruptionData {
@@ -96,6 +102,7 @@ export default function CreateInterruptionForm({
   const [feeders, setFeeders] = useState<Feeder[]>([]);
   const [barangays, setBarangays] = useState<Barangay[]>([]);
   const [showMap, setShowMap] = useState(false);
+  const [feederSearchTerm, setFeederSearchTerm] = useState("");
 
   const isEditing = !!initialData?.id;
 
@@ -118,6 +125,15 @@ export default function CreateInterruptionForm({
 
         if (barangaysRes.ok) {
           const barangaysData = await barangaysRes.json();
+          console.log("Loaded barangays in form:", {
+            total: barangaysData.length,
+            withFeeders: barangaysData.filter(
+              (b: Barangay) => b.FeederCoverage && b.FeederCoverage.length > 0
+            ).length,
+            sampleBarangay: barangaysData.find(
+              (b: Barangay) => b.FeederCoverage && b.FeederCoverage.length > 0
+            ),
+          });
           setBarangays(barangaysData);
         }
       } catch (error) {
@@ -130,43 +146,121 @@ export default function CreateInterruptionForm({
 
   const handlePolygonDrawn = async (
     drawnPolygon: any,
-    affectedBarangayPsgcs: string[]
+    affectedBarangays: { psgcIds: string[]; names: string[] }
   ) => {
     // Add to polygons array instead of replacing
     setPolygons((prev) => [...prev, drawnPolygon]);
     setCustomArea(true);
 
+    console.log("=== Polygon Drawn Handler ===");
+    console.log("Drawn polygon:", drawnPolygon);
+    console.log("Affected barangay PSGCs:", affectedBarangays.psgcIds);
+    console.log("Affected barangay names:", affectedBarangays.names);
+    console.log("Available barangays in state:", barangays.length);
+
+    // Debug: Show some sample barangay data
+    const sampleBarangay = barangays.find(
+      (b) => b.FeederCoverage && b.FeederCoverage.length > 0
+    );
+    console.log("Sample barangay with feeders:", sampleBarangay);
+
     // Find feeders that serve the affected barangays
     const affectedFeederIds = new Set<string>();
+    const matchedBarangays: string[] = [];
+    const debugMatches: any[] = [];
 
-    try {
-      // Get barangay data with feeder coverage
-      const response = await fetch("/api/v1/barangays");
-      if (response.ok) {
-        const barangayData = await response.json();
+    // Use the barangays state that was loaded during initialization
+    barangays.forEach((barangay) => {
+      // Try to match by PSGC ID first, then by name as fallback
+      const isAffectedByPsgc = affectedBarangays.psgcIds.includes(
+        barangay.psgcId
+      );
+      const isAffectedByName = affectedBarangays.names.some(
+        (name) =>
+          name.toLowerCase().includes(barangay.name.toLowerCase()) ||
+          barangay.name.toLowerCase().includes(name.toLowerCase())
+      );
 
-        barangayData.forEach((barangay: any) => {
-          if (affectedBarangayPsgcs.includes(barangay.psgcId)) {
-            barangay.FeederCoverage?.forEach((coverage: any) => {
-              affectedFeederIds.add(coverage.feeder.id);
-            });
-          }
+      const isAffected = isAffectedByPsgc || isAffectedByName;
+
+      if (isAffected) {
+        const matchType = isAffectedByPsgc ? "PSGC" : "Name";
+        console.log(
+          `✓ Match found for ${barangay.name} (PSGC: ${barangay.psgcId}) via ${matchType}`
+        );
+        console.log(`  - Feeder coverage:`, barangay.FeederCoverage);
+
+        matchedBarangays.push(barangay.name);
+
+        const debugMatch = {
+          barangay: barangay.name,
+          psgcId: barangay.psgcId,
+          matchType: matchType,
+          feeders: barangay.FeederCoverage?.map((c) => c.feeder.name) || [],
+        };
+        debugMatches.push(debugMatch);
+
+        barangay.FeederCoverage?.forEach((coverage) => {
+          console.log(
+            `  - Adding feeder: ${coverage.feeder.name} (${coverage.feeder.id})`
+          );
+          affectedFeederIds.add(coverage.feeder.id);
         });
       }
-    } catch (error) {
-      console.error("Error loading affected feeders:", error);
-    }
+    });
+
+    console.log("Debug matches:", debugMatches);
+    console.log("Matched barangays:", matchedBarangays);
+    console.log("Affected feeder IDs:", Array.from(affectedFeederIds));
 
     // Add affected feeders to selection (but allow user to remove them)
-    setSelectedFeederIds((prev) => [
-      ...new Set([...prev, ...Array.from(affectedFeederIds)]),
-    ]);
+    setSelectedFeederIds((prev) => {
+      const newSelection = [
+        ...new Set([...prev, ...Array.from(affectedFeederIds)]),
+      ];
+      console.log("Updated feeder selection:", newSelection);
+      return newSelection;
+    });
 
-    toast.success(
-      `Polygon ${
-        polygons.length + 1
-      } drawn! Affected feeders added to selection.`
-    );
+    const affectedFeederNames = Array.from(affectedFeederIds)
+      .map((id) => feeders.find((f) => f.id === id)?.name)
+      .filter(Boolean)
+      .slice(0, 3);
+
+    if (affectedFeederIds.size > 0) {
+      toast.success(
+        `Polygon drawn! Found ${
+          matchedBarangays.length
+        } barangays, auto-selected ${
+          affectedFeederIds.size
+        } feeders: ${affectedFeederNames.join(", ")}${
+          affectedFeederIds.size > 3 ? "..." : ""
+        }`
+      );
+    } else if (matchedBarangays.length > 0) {
+      toast.warning(
+        `Polygon drawn! Found ${
+          matchedBarangays.length
+        } barangays (${matchedBarangays.join(
+          ", "
+        )}) but no feeders are configured for these areas. Please check the feeder coverage configuration.`
+      );
+    } else {
+      // Show detailed debugging info
+      console.log("No matches found. Debug info:");
+      console.log(
+        "Sample database barangay names:",
+        barangays.slice(0, 10).map((b) => ({ name: b.name, psgc: b.psgcId }))
+      );
+      console.log(
+        "GeoJSON barangay names from polygon:",
+        affectedBarangays.names.slice(0, 10)
+      );
+
+      toast.info(
+        `Polygon drawn! Checked ${affectedBarangays.psgcIds.length} barangay areas but no matches found. The barangay names or PSGC IDs might not match between the GeoJSON file and database. Check console for details.`
+      );
+    }
   };
 
   const handleRemovePolygon = (index: number) => {
@@ -290,6 +384,11 @@ export default function CreateInterruptionForm({
       </div>
     );
   }
+
+  // Filter feeders based on search term
+  const filteredFeeders = feeders.filter((feeder) =>
+    feeder.name.toLowerCase().includes(feederSearchTerm.toLowerCase())
+  );
 
   return (
     <Card className="bg-background/80 backdrop-blur-xl border border-white/20 shadow-2xl">
@@ -432,12 +531,29 @@ export default function CreateInterruptionForm({
 
           {/* Affected Feeders Section */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">
-              Affected Feeders *
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">
+                Affected Feeders *
+              </h3>
+              <div className="text-sm text-muted-foreground">
+                {selectedFeederIds.length} of {feeders.length} selected
+              </div>
+            </div>
 
+            {/* Feeder Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search feeders..."
+                value={feederSearchTerm}
+                onChange={(e) => setFeederSearchTerm(e.target.value)}
+                className="pl-10 bg-background/50 border-white/20 focus:border-primary/50"
+              />
+            </div>
+
+            {/* Feeder List */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
-              {feeders.map((feeder) => (
+              {filteredFeeders.map((feeder) => (
                 <div
                   key={feeder.id}
                   className="flex items-center space-x-3 p-3 rounded-lg bg-background/30 border border-white/10 hover:bg-background/50 transition-colors"
@@ -457,12 +573,20 @@ export default function CreateInterruptionForm({
               ))}
             </div>
 
+            {/* No results message */}
+            {filteredFeeders.length === 0 && feederSearchTerm && (
+              <div className="text-center py-4 text-muted-foreground">
+                No feeders found matching "{feederSearchTerm}"
+              </div>
+            )}
+
+            {/* Selected Feeders Display */}
             {selectedFeederIds.length > 0 && (
               <div className="space-y-2">
                 <p className="text-sm font-medium">
                   Selected Feeders ({selectedFeederIds.length}):
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                   {selectedFeederIds.map((feederId) => {
                     const feeder = feeders.find((f) => f.id === feederId);
                     return feeder ? (

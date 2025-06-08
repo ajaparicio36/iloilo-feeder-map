@@ -15,7 +15,10 @@ export async function GET() {
         interruptedFeeders: {
           where: {
             interruption: {
-              endTime: null,
+              OR: [
+                { endTime: null }, // No end time set
+                { endTime: { gt: new Date() } }, // End time is in the future
+              ],
             },
           },
           include: {

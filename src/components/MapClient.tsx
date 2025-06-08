@@ -105,11 +105,54 @@ export default function MapClient() {
           );
         }
         const barangayApiData = await barangayResponse.json();
-        console.log("MapClient: Barangay data loaded successfully", {
+
+        // Add validation and logging for the new data structure
+        console.log("MapClient: Raw barangay API response:", {
           count: barangayApiData.length,
           sample: barangayApiData[0],
+          sampleFeederCoverage: barangayApiData[0]?.FeederCoverage,
+          withCoverage: barangayApiData.filter(
+            (b: any) => b.FeederCoverage && b.FeederCoverage.length > 0
+          ).length,
+          // Check for actual interruption data structure
+          sampleInterruption: barangayApiData.find((b: any) =>
+            b.FeederCoverage?.some((fc: any) =>
+              fc.feeder?.interruptedFeeders?.some(
+                (inf: any) => inf.interruption
+              )
+            )
+          ),
         });
-        setBarangayData(barangayApiData);
+
+        // Ensure all barangays have proper FeederCoverage array structure
+        const processedBarangayData = barangayApiData.map((barangay: any) => ({
+          ...barangay,
+          FeederCoverage: (barangay.FeederCoverage || []).map(
+            (coverage: any) => ({
+              ...coverage,
+              feeder: {
+                ...coverage.feeder,
+                interruptedFeeders: coverage.feeder?.interruptedFeeders || [],
+              },
+            })
+          ),
+        }));
+
+        console.log("MapClient: Processed barangay data", {
+          count: processedBarangayData.length,
+          withCoverage: processedBarangayData.filter(
+            (b: any) => b.FeederCoverage.length > 0
+          ).length,
+          withInterruptions: processedBarangayData.filter((b: any) =>
+            b.FeederCoverage.some((fc: any) =>
+              fc.feeder?.interruptedFeeders?.some(
+                (inf: any) => inf.interruption
+              )
+            )
+          ).length,
+        });
+
+        setBarangayData(processedBarangayData);
         updateLoadingState("barangayData");
 
         // Load filter data
