@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, JSX } from "react";
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { X, MapPin, Zap, AlertTriangle, Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -393,61 +398,101 @@ export default function Map({
           )
         : interruptions;
 
-    return filteredInterruptions
+    const polygonElements: JSX.Element[] = [];
+
+    filteredInterruptions
       .filter((interruption) => interruption.customArea && interruption.polygon)
-      .map((interruption) => {
+      .forEach((interruption, interruptionIndex) => {
         const displayDescription =
           interruption.description || "No extra description";
         const typeLabel =
           interruption.type?.charAt(0) +
             interruption.type?.slice(1).toLowerCase() || "Unknown";
 
-        return (
-          <GeoJSON
-            key={interruption.id}
-            data={
-              {
-                type: "Feature",
-                geometry: interruption.polygon as GeoJSON.Geometry,
-                properties: {
-                  id: interruption.id,
-                  description: interruption.description,
-                  startTime: interruption.startTime,
-                },
-              } as GeoJSON.Feature
-            }
-            style={{
-              fillColor: "#ef4444",
-              weight: 2,
-              opacity: 0.8,
-              color: "#dc2626",
-              dashArray: "5, 5",
-              fillOpacity: 0.3,
-            }}
-            onEachFeature={(feature, layer) => {
-              const endTimeDisplay = interruption.endTime
-                ? `<span class="text-xs text-gray-500">
-                     Ended: ${new Date(interruption.endTime).toLocaleString()}
-                   </span><br/>`
-                : "";
+        // Handle different polygon data structures
+        let polygonsToRender: any[] = [];
 
-              layer.bindPopup(
-                `<div class="font-semibold text-sm">
-                  <strong class="text-red-500">${typeLabel} Power Interruption</strong><br/>
-                  <span class="text-xs">${displayDescription}</span><br/>
-                  <span class="text-xs text-gray-500">
-                    Started: ${new Date(
-                      interruption.startTime
-                    ).toLocaleString()}
-                  </span><br/>
-                  ${endTimeDisplay}
-                </div>`,
-                { className: "custom-popup" }
-              );
-            }}
-          />
-        );
+        if (Array.isArray(interruption.polygon)) {
+          // Array of polygon geometries
+          polygonsToRender = interruption.polygon.map((geom, index) => ({
+            geometry: geom,
+            index,
+          }));
+        } else if (interruption.polygon.type === "FeatureCollection") {
+          // GeoJSON FeatureCollection
+          polygonsToRender = interruption.polygon.features.map(
+            (feature: any, index: number) => ({
+              geometry: feature.geometry,
+              index,
+            })
+          );
+        } else if (
+          interruption.polygon.type === "Polygon" ||
+          interruption.polygon.type === "MultiPolygon"
+        ) {
+          // Single polygon geometry
+          polygonsToRender = [{ geometry: interruption.polygon, index: 0 }];
+        }
+
+        // Render each polygon
+        polygonsToRender.forEach(({ geometry, index }) => {
+          const endTimeDisplay = interruption.endTime
+            ? `<span class="text-xs text-gray-500">
+                 Ended: ${new Date(interruption.endTime).toLocaleString()}
+               </span><br/>`
+            : "";
+
+          polygonElements.push(
+            <GeoJSON
+              key={`${interruption.id}-${index}`}
+              data={
+                {
+                  type: "Feature",
+                  geometry: geometry as GeoJSON.Geometry,
+                  properties: {
+                    id: interruption.id,
+                    description: interruption.description,
+                    startTime: interruption.startTime,
+                    polygonIndex: index,
+                  },
+                } as GeoJSON.Feature
+              }
+              style={{
+                fillColor: "#ef4444",
+                weight: 2,
+                opacity: 0.8,
+                color: "#dc2626",
+                dashArray: "5, 5",
+                fillOpacity: 0.3,
+              }}
+              onEachFeature={(feature, layer) => {
+                layer.bindPopup(
+                  `<div class="font-semibold text-sm">
+                    <strong class="text-red-500">${typeLabel} Power Interruption</strong><br/>
+                    ${
+                      polygonsToRender.length > 1
+                        ? `<span class="text-xs text-blue-400">Area ${
+                            index + 1
+                          } of ${polygonsToRender.length}</span><br/>`
+                        : ""
+                    }
+                    <span class="text-xs">${displayDescription}</span><br/>
+                    <span class="text-xs text-gray-500">
+                      Started: ${new Date(
+                        interruption.startTime
+                      ).toLocaleString()}
+                    </span><br/>
+                    ${endTimeDisplay}
+                  </div>`,
+                  { className: "custom-popup" }
+                );
+              }}
+            />
+          );
+        });
       });
+
+    return polygonElements;
   };
 
   return (
@@ -481,10 +526,220 @@ export default function Map({
         {renderInterruptionPolygons()}
       </MapContainer>
 
-      {/* Enhanced Floating Info Widget */}
+      {/* Right Side Information Panel */}
       {clickedBarangayData && (
-        <div className="absolute top-4 left-4 z-30 w-96 bg-background/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl">
-          {/* ...existing clickedBarangayData content... */}
+        <div className="absolute top-4 right-4 z-30 w-96 bg-background/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl max-h-[calc(100vh-8rem)] flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <div className="flex items-center space-x-2">
+              <MapPin className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold text-lg">Barangay Details</h3>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setClickedBarangayData(null)}
+              className="hover:bg-white/10"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Content */}
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-6">
+              {/* Barangay Information */}
+              <div>
+                <h4 className="font-semibold text-xl text-primary mb-3">
+                  {clickedBarangayData.geoData.adm4_en}
+                </h4>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">PSGC Code:</span>
+                    <p className="font-medium">
+                      {clickedBarangayData.geoData.adm4_psgc}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Area:</span>
+                    <p className="font-medium">
+                      {clickedBarangayData.geoData.area_km2?.toFixed(2)} km²
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Perimeter:</span>
+                    <p className="font-medium">
+                      {clickedBarangayData.geoData.len_km?.toFixed(2)} km
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Level:</span>
+                    <p className="font-medium capitalize">
+                      {clickedBarangayData.geoData.geo_level}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="bg-white/10" />
+
+              {/* Power Feeders Section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <Zap className="w-4 h-4 text-blue-500" />
+                    <h5 className="font-semibold">Power Feeders</h5>
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className="bg-blue-500/20 text-blue-400"
+                  >
+                    {clickedBarangayData.feederData?.FeederCoverage?.length ||
+                      0}
+                  </Badge>
+                </div>
+
+                {clickedBarangayData.feederData?.FeederCoverage?.length ? (
+                  <div className="space-y-3">
+                    {clickedBarangayData.feederData.FeederCoverage.map(
+                      (coverage, index) => {
+                        const feeder = coverage.feeder;
+                        const hasInterruption = feeder.interruptedFeeders.some(
+                          (interrupted) => interrupted.interruption
+                        );
+                        const activeInterruptions = feeder.interruptedFeeders
+                          .filter((interrupted) => interrupted.interruption)
+                          .map((interrupted) => interrupted.interruption!);
+
+                        return (
+                          <div
+                            key={feeder.id}
+                            className={`p-3 rounded-xl border transition-colors ${
+                              hasInterruption
+                                ? "bg-yellow-500/10 border-yellow-500/30 hover:bg-yellow-500/20"
+                                : "bg-white/5 border-white/10 hover:bg-white/10"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <Zap
+                                    className={`w-4 h-4 ${
+                                      hasInterruption
+                                        ? "text-yellow-500"
+                                        : "text-blue-500"
+                                    }`}
+                                  />
+                                  <span className="font-medium text-sm">
+                                    {feeder.name}
+                                  </span>
+                                  {hasInterruption && (
+                                    <Badge
+                                      variant="outline"
+                                      className="border-yellow-500/50 text-yellow-500 bg-yellow-500/10"
+                                    >
+                                      <AlertTriangle className="w-3 h-3 mr-1" />
+                                      Interrupted
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                {hasInterruption && (
+                                  <div className="space-y-2">
+                                    {activeInterruptions.map((interruption) => (
+                                      <div
+                                        key={interruption.id}
+                                        className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2"
+                                      >
+                                        <div className="flex items-start space-x-2">
+                                          <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                              Power Interruption Active
+                                            </p>
+                                            <p className="text-xs text-yellow-700 dark:text-yellow-300/80 mt-1">
+                                              {interruption.description ||
+                                                "No additional details"}
+                                            </p>
+                                            <p className="text-xs text-yellow-600 dark:text-yellow-400/60 mt-1">
+                                              Started:{" "}
+                                              {new Date(
+                                                interruption.startTime
+                                              ).toLocaleString()}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {!hasInterruption && (
+                                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span>Operating normally</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Zap className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No feeder information available</p>
+                    <p className="text-xs">
+                      This barangay may not be covered by the power grid data
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Overall Status Summary */}
+              {clickedBarangayData.feederData?.FeederCoverage?.length && (
+                <>
+                  <Separator className="bg-white/10" />
+                  <div>
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Info className="w-4 h-4 text-primary" />
+                      <h5 className="font-semibold">Power Status Summary</h5>
+                    </div>
+
+                    {hasActiveInterruption(clickedBarangayData.feederData) ? (
+                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                          <span className="font-medium text-yellow-800 dark:text-yellow-200">
+                            Power Interruption Detected
+                          </span>
+                        </div>
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300/80">
+                          This barangay is currently experiencing power
+                          interruptions. Some areas may be without electricity.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                          <span className="font-medium text-green-800 dark:text-green-200">
+                            Normal Operation
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-700 dark:text-green-300/80">
+                          All power feeders serving this barangay are operating
+                          normally.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </ScrollArea>
         </div>
       )}
 

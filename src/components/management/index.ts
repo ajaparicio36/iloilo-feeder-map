@@ -1,5 +1,6 @@
 export { default as AdminMap } from "./AdminMap";
 export { default as AdminMapClient } from "./AdminMapClient";
+export { default as AdminNavbar } from "./AdminNavbar";
 export { default as CreateBarangayCard } from "./CreateBarangayCard";
 export { default as CreateBarangayForm } from "./CreateBarangayForm";
 export { default as CreateFeederCard } from "./CreateFeederCard";

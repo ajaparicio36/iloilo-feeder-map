@@ -268,7 +268,7 @@ export default function FilterAccordion({
                                 {interruption.customArea && (
                                   <Badge
                                     variant="outline"
-                                    className="text-xs border-orange-500/50 text-orange-400"
+                                    className="text-xs border-orange-500/50 text-orange-600 dark:text-orange-400"
                                   >
                                     Custom Area
                                   </Badge>

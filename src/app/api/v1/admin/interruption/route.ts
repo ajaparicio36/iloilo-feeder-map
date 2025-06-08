@@ -134,13 +134,38 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
+    // Process polygon data for storage
+    let polygonToStore: any = null;
+    if (polygon) {
+      if (Array.isArray(polygon) && polygon.length > 0) {
+        // Convert array of geometries to FeatureCollection for consistent storage
+        polygonToStore = {
+          type: "FeatureCollection",
+          features: polygon.map((geom: any, index: number) => ({
+            type: "Feature",
+            geometry: geom,
+            properties: { index },
+          })),
+        };
+      } else if (polygon && typeof polygon === "object" && "type" in polygon) {
+        // Handle objects with type property (single geometry or FeatureCollection)
+        if (
+          polygon.type === "FeatureCollection" ||
+          polygon.type === "Polygon" ||
+          polygon.type === "MultiPolygon"
+        ) {
+          polygonToStore = polygon;
+        }
+      }
+    }
+
     const interruption = await prisma.interruption.create({
       data: {
         startTime: new Date(startTime),
         endTime: endTime ? new Date(endTime) : null,
         description,
         type,
-        polygon,
+        polygon: polygonToStore as any, // Type assertion for Prisma Json field
         customArea,
         interruptedFeeders: {
           create: feederIds.map((feederId) => ({ feederId })),

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { X, MapPin } from "lucide-react";
+import { X, MapPin, Layers, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import AdminMapClient from "./AdminMapClient";
 
@@ -67,7 +67,28 @@ export default function CreateInterruptionForm({
   const [selectedFeederIds, setSelectedFeederIds] = useState<string[]>(
     initialData?.feederIds || []
   );
-  const [polygon, setPolygon] = useState(initialData?.polygon || null);
+
+  // Handle initial polygon data - convert to array format
+  const [polygons, setPolygons] = useState<any[]>(() => {
+    if (!initialData?.polygon) return [];
+
+    // Handle different polygon data structures
+    if (Array.isArray(initialData.polygon)) {
+      return initialData.polygon;
+    } else if (initialData.polygon.type === "FeatureCollection") {
+      return initialData.polygon.features.map(
+        (feature: any) => feature.geometry
+      );
+    } else if (
+      initialData.polygon.type === "Polygon" ||
+      initialData.polygon.type === "MultiPolygon"
+    ) {
+      return [initialData.polygon];
+    }
+
+    return [];
+  });
+
   const [customArea, setCustomArea] = useState(
     initialData?.customArea || false
   );
@@ -88,7 +109,11 @@ export default function CreateInterruptionForm({
 
         if (feedersRes.ok) {
           const feedersData = await feedersRes.json();
-          setFeeders(feedersData);
+          // Sort feeders alphabetically
+          const sortedFeeders = feedersData.sort((a: Feeder, b: Feeder) =>
+            a.name.localeCompare(b.name)
+          );
+          setFeeders(sortedFeeders);
         }
 
         if (barangaysRes.ok) {
@@ -107,7 +132,8 @@ export default function CreateInterruptionForm({
     drawnPolygon: any,
     affectedBarangayPsgcs: string[]
   ) => {
-    setPolygon(drawnPolygon);
+    // Add to polygons array instead of replacing
+    setPolygons((prev) => [...prev, drawnPolygon]);
     setCustomArea(true);
 
     // Find feeders that serve the affected barangays
@@ -135,11 +161,19 @@ export default function CreateInterruptionForm({
     setSelectedFeederIds((prev) => [
       ...new Set([...prev, ...Array.from(affectedFeederIds)]),
     ]);
-    setShowMap(false);
 
-    toast.info(
-      "Polygon drawn! Affected feeders have been added to the selection."
+    toast.success(
+      `Polygon ${
+        polygons.length + 1
+      } drawn! Affected feeders added to selection.`
     );
+  };
+
+  const handleRemovePolygon = (index: number) => {
+    setPolygons((prev) => prev.filter((_, i) => i !== index));
+    if (polygons.length === 1) {
+      setCustomArea(false);
+    }
   };
 
   const handleFeederToggle = (feederId: string) => {
@@ -170,7 +204,7 @@ export default function CreateInterruptionForm({
           description: description || null,
           type,
           feederIds: selectedFeederIds,
-          polygon,
+          polygon: polygons.length > 0 ? polygons : null,
           customArea,
         }),
       });
@@ -196,155 +230,227 @@ export default function CreateInterruptionForm({
 
   if (showMap) {
     return (
-      <Card className="bg-background/80 backdrop-blur-xl border border-white/20 shadow-2xl">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                Draw Interruption Area
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Draw a polygon on the map to define the interruption area
-              </CardDescription>
+      <div className="fixed inset-0 z-50 bg-background">
+        <div className="h-full flex flex-col">
+          {/* Map Header */}
+          <div className="bg-background/95 backdrop-blur-xl border-b border-white/20 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowMap(false)}
+                  className="bg-background/50 border-white/20 hover:bg-background/70"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Form
+                </Button>
+                <div>
+                  <h2 className="text-xl font-bold">Draw Interruption Areas</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Use the polygon tool to draw multiple affected areas
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge
+                  variant="secondary"
+                  className="flex items-center space-x-1"
+                >
+                  <Layers className="w-3 h-3" />
+                  <span>{polygons.length} polygons drawn</span>
+                </Badge>
+              </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => setShowMap(false)}
-              className="bg-background/50 border-white/20 hover:bg-background/70"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <AdminMapClient onPolygonDrawn={handlePolygonDrawn} />
-          <p className="text-sm text-muted-foreground mt-4">
-            Use the polygon tool in the top-right corner to draw the affected
-            area.
-          </p>
-        </CardContent>
-      </Card>
+
+          {/* Map Content */}
+          <div className="flex-1">
+            <AdminMapClient
+              onPolygonDrawn={handlePolygonDrawn}
+              existingPolygons={polygons}
+            />
+          </div>
+
+          {/* Map Footer */}
+          <div className="bg-background/95 backdrop-blur-xl border-t border-white/20 p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Click the polygon tool (□) in the top-right corner to draw
+                areas. You can draw multiple polygons.
+              </p>
+              <Button
+                onClick={() => setShowMap(false)}
+                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              >
+                Done Drawing
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
     <Card className="bg-background/80 backdrop-blur-xl border border-white/20 shadow-2xl">
       <CardHeader className="pb-6">
-        <CardTitle className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+        <CardTitle className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
           {isEditing ? "Edit Interruption" : "Create New Interruption"}
         </CardTitle>
         <CardDescription className="text-muted-foreground">
           {isEditing
             ? "Update interruption information"
-            : "Create a new power interruption"}
+            : "Create a new power interruption with affected areas and feeders"}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startTime" className="text-sm font-medium">
-                Start Time
-              </Label>
-              <Input
-                id="startTime"
-                type="datetime-local"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                required
-                className="bg-background/50 border-white/20 focus:border-primary/50"
-              />
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Date and Time Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">
+              Schedule Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startTime" className="text-sm font-medium">
+                  Start Time *
+                </Label>
+                <Input
+                  id="startTime"
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  required
+                  className="bg-background/50 border-white/20 focus:border-primary/50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endTime" className="text-sm font-medium">
+                  End Time (Optional)
+                </Label>
+                <Input
+                  id="endTime"
+                  type="datetime-local"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="bg-background/50 border-white/20 focus:border-primary/50"
+                />
+              </div>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="endTime" className="text-sm font-medium">
-                End Time (Optional)
-              </Label>
-              <Input
-                id="endTime"
-                type="datetime-local"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="bg-background/50 border-white/20 focus:border-primary/50"
-              />
+          {/* Type and Description Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">
+              Interruption Details
+            </h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="type" className="text-sm font-medium">
+                  Interruption Type *
+                </Label>
+                <Select value={type} onValueChange={setType} required>
+                  <SelectTrigger className="bg-background/50 border-white/20 focus:border-primary/50">
+                    <SelectValue placeholder="Select interruption type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SCHEDULED">
+                      Scheduled Maintenance
+                    </SelectItem>
+                    <SelectItem value="UNSCHEDULED">
+                      Unscheduled Outage
+                    </SelectItem>
+                    <SelectItem value="EMERGENCY">Emergency Repair</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-medium">
+                  Description (Optional)
+                </Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Enter detailed description of the interruption..."
+                  rows={3}
+                  className="bg-background/50 border-white/20 focus:border-primary/50"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="type" className="text-sm font-medium">
-              Interruption Type
-            </Label>
-            <Select value={type} onValueChange={setType} required>
-              <SelectTrigger className="bg-background/50 border-white/20 focus:border-primary/50">
-                <SelectValue placeholder="Select interruption type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-                <SelectItem value="UNSCHEDULED">Unscheduled</SelectItem>
-                <SelectItem value="EMERGENCY">Emergency</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-sm font-medium">
-              Description (Optional)
-            </Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter interruption description"
-              rows={3}
-              className="bg-background/50 border-white/20 focus:border-primary/50"
-            />
-          </div>
-
+          {/* Affected Areas Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Affected Feeders</Label>
+              <h3 className="text-lg font-semibold text-foreground">
+                Affected Areas
+              </h3>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setShowMap(true)}
-                className="bg-background/50 border-white/20 hover:bg-background/70"
+                className="bg-primary/10 border-primary/30 hover:bg-primary/20 text-primary"
               >
                 <MapPin className="w-4 h-4 mr-2" />
-                Draw Area
+                Draw Areas on Map
               </Button>
             </div>
 
-            {polygon && (
-              <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg">
-                <MapPin className="w-4 h-4 text-primary" />
-                <span className="text-sm">Custom area defined</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setPolygon(null);
-                    setCustomArea(false);
-                  }}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+            {polygons.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {polygons.length} custom area{polygons.length > 1 ? "s" : ""}{" "}
+                  defined:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {polygons.map((_, index) => (
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="flex items-center gap-2"
+                    >
+                      <MapPin className="w-3 h-3" />
+                      Area {index + 1}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemovePolygon(index)}
+                        className="h-4 w-4 p-0 hover:bg-destructive/20"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
               </div>
             )}
+          </div>
 
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+          {/* Affected Feeders Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-foreground">
+              Affected Feeders *
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
               {feeders.map((feeder) => (
                 <div
                   key={feeder.id}
-                  className="flex items-center space-x-2 p-2 rounded-lg bg-background/30 border border-white/10"
+                  className="flex items-center space-x-3 p-3 rounded-lg bg-background/30 border border-white/10 hover:bg-background/50 transition-colors"
                 >
                   <Checkbox
                     id={feeder.id}
                     checked={selectedFeederIds.includes(feeder.id)}
                     onCheckedChange={() => handleFeederToggle(feeder.id)}
                   />
-                  <Label htmlFor={feeder.id} className="flex-1 cursor-pointer">
+                  <Label
+                    htmlFor={feeder.id}
+                    className="flex-1 cursor-pointer text-sm"
+                  >
                     {feeder.name}
                   </Label>
                 </div>
@@ -352,29 +458,39 @@ export default function CreateInterruptionForm({
             </div>
 
             {selectedFeederIds.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {selectedFeederIds.map((feederId) => {
-                  const feeder = feeders.find((f) => f.id === feederId);
-                  return feeder ? (
-                    <Badge key={feederId} variant="secondary">
-                      {feeder.name}
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleFeederToggle(feederId)}
-                        className="ml-1 h-4 w-4 p-0"
+              <div className="space-y-2">
+                <p className="text-sm font-medium">
+                  Selected Feeders ({selectedFeederIds.length}):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedFeederIds.map((feederId) => {
+                    const feeder = feeders.find((f) => f.id === feederId);
+                    return feeder ? (
+                      <Badge
+                        key={feederId}
+                        variant="default"
+                        className="flex items-center gap-1"
                       >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </Badge>
-                  ) : null;
-                })}
+                        {feeder.name}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleFeederToggle(feederId)}
+                          className="h-4 w-4 p-0 hover:bg-background/20"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </Badge>
+                    ) : null;
+                  })}
+                </div>
               </div>
             )}
           </div>
 
-          <div className="flex gap-3 pt-4">
+          {/* Submit Section */}
+          <div className="flex gap-3 pt-6 border-t border-white/20">
             <Button
               type="submit"
               disabled={
@@ -383,7 +499,7 @@ export default function CreateInterruptionForm({
                 !type ||
                 selectedFeederIds.length === 0
               }
-              className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 h-12 text-base font-medium"
             >
               {isLoading
                 ? "Saving..."
@@ -396,7 +512,7 @@ export default function CreateInterruptionForm({
                 type="button"
                 variant="outline"
                 onClick={onCancel}
-                className="bg-background/50 border-white/20 hover:bg-background/70"
+                className="bg-background/50 border-white/20 hover:bg-background/70 h-12 px-8"
               >
                 Cancel
               </Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MapContainer, TileLayer, GeoJSON, FeatureGroup } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
 import L from "leaflet";
@@ -21,11 +21,17 @@ L.Icon.Default.mergeOptions({
 interface AdminMapProps {
   geoData: any;
   onPolygonDrawn?: (polygon: any, affectedBarangays: string[]) => void;
+  existingPolygons?: any[];
 }
 
-export default function AdminMap({ geoData, onPolygonDrawn }: AdminMapProps) {
+export default function AdminMap({
+  geoData,
+  onPolygonDrawn,
+  existingPolygons = [],
+}: AdminMapProps) {
   const [mapRef, setMapRef] = useState<L.Map | null>(null);
   const featureGroupRef = useRef<L.FeatureGroup | null>(null);
+  const existingPolygonsRef = useRef<L.FeatureGroup | null>(null);
 
   // Iloilo City coordinates and bounds
   const center: [number, number] = [10.7202, 122.5621];
@@ -33,6 +39,29 @@ export default function AdminMap({ geoData, onPolygonDrawn }: AdminMapProps) {
     L.latLng(10.65, 122.48), // Southwest corner
     L.latLng(10.78, 122.62) // Northeast corner
   );
+
+  // Add existing polygons to map
+  useEffect(() => {
+    if (mapRef && existingPolygonsRef.current && existingPolygons.length > 0) {
+      existingPolygonsRef.current.clearLayers();
+
+      existingPolygons.forEach((polygon, index) => {
+        const layer = L.geoJSON(polygon, {
+          style: {
+            color: "#8b5cf6",
+            fillColor: "#8b5cf6",
+            fillOpacity: 0.2,
+            weight: 2,
+            dashArray: "5, 5",
+          },
+        });
+
+        if (existingPolygonsRef.current) {
+          existingPolygonsRef.current.addLayer(layer);
+        }
+      });
+    }
+  }, [mapRef, existingPolygons]);
 
   const onCreated = (e: any) => {
     const { layer } = e;
@@ -92,6 +121,10 @@ export default function AdminMap({ geoData, onPolygonDrawn }: AdminMapProps) {
 
       {geoData && <GeoJSON data={geoData} style={getFeatureStyle} />}
 
+      {/* Existing polygons layer */}
+      <FeatureGroup ref={existingPolygonsRef} />
+
+      {/* Drawing layer */}
       <FeatureGroup ref={featureGroupRef}>
         <EditControl
           position="topright"

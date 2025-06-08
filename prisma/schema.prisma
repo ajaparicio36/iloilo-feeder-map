@@ -60,7 +60,7 @@ model Interruption {
   startTime          DateTime
   endTime            DateTime?
   description        String?
-  polygon            Json? // Store GeoJSON polygon data
+  polygon            Json? // Store GeoJSON: FeatureCollection, Polygon, MultiPolygon, or array of geometries
   customArea         Boolean              @default(false) // Flag to indicate if this is a custom drawn area
   type               InterruptionType
   createdAt          DateTime             @default(now())

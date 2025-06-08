@@ -84,8 +84,39 @@ export const PUT = async (
       updateData.endTime = endTime ? new Date(endTime) : null;
     if (description !== undefined) updateData.description = description;
     if (type !== undefined) updateData.type = type;
-    if (polygon !== undefined) updateData.polygon = polygon;
     if (customArea !== undefined) updateData.customArea = customArea;
+
+    // Process polygon data for storage
+    if (polygon !== undefined) {
+      let polygonToStore: any = null;
+      if (polygon) {
+        if (Array.isArray(polygon) && polygon.length > 0) {
+          // Convert array of geometries to FeatureCollection for consistent storage
+          polygonToStore = {
+            type: "FeatureCollection",
+            features: polygon.map((geom: any, index: number) => ({
+              type: "Feature",
+              geometry: geom,
+              properties: { index },
+            })),
+          };
+        } else if (
+          polygon &&
+          typeof polygon === "object" &&
+          "type" in polygon
+        ) {
+          // Handle objects with type property (single geometry or FeatureCollection)
+          if (
+            polygon.type === "FeatureCollection" ||
+            polygon.type === "Polygon" ||
+            polygon.type === "MultiPolygon"
+          ) {
+            polygonToStore = polygon;
+          }
+        }
+      }
+      updateData.polygon = polygonToStore as any; // Type assertion for Prisma Json field
+    }
 
     // If feederIds are provided, update the relationships
     if (feederIds) {

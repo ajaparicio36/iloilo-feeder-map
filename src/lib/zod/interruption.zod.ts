@@ -7,6 +7,32 @@ export const interruptionTypeSchema = z.enum([
   "EMERGENCY",
 ]);
 
+// GeoJSON geometry schema for validation
+const geoJsonGeometrySchema = z.object({
+  type: z.enum(["Polygon", "MultiPolygon"]),
+  coordinates: z.array(z.array(z.array(z.number()))),
+});
+
+// Schema for multiple polygons - can be array of geometries or FeatureCollection
+const polygonDataSchema = z
+  .union([
+    z.array(geoJsonGeometrySchema), // Array of polygon geometries
+    geoJsonGeometrySchema, // Single polygon geometry
+    z.object({
+      type: z.literal("FeatureCollection"),
+      features: z.array(
+        z.object({
+          type: z.literal("Feature"),
+          geometry: geoJsonGeometrySchema,
+          properties: z.record(z.any()).optional(),
+        })
+      ),
+    }), // GeoJSON FeatureCollection
+    z.null(),
+    z.undefined(), // Allow undefined
+  ])
+  .optional(); // Make the entire schema optional
+
 export const createInterruptionSchema = z
   .object({
     startTime: z
@@ -70,7 +96,7 @@ export const createInterruptionSchema = z
       .min(1, "At least one feeder must be selected")
       .max(50, "Cannot select more than 50 feeders at once"),
     type: interruptionTypeSchema,
-    polygon: z.any().optional().nullable(), // GeoJSON polygon data
+    polygon: polygonDataSchema, // Updated to handle multiple polygons
     customArea: z.boolean().default(false),
   })
   .refine(
@@ -152,7 +178,7 @@ export const updateInterruptionSchema = z
       .max(50, "Cannot select more than 50 feeders at once")
       .optional(),
     type: interruptionTypeSchema.optional(),
-    polygon: z.any().optional().nullable(), // GeoJSON polygon data
+    polygon: polygonDataSchema, // Updated to handle multiple polygons
     customArea: z.boolean().optional(),
   })
   .refine(

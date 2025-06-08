@@ -11,11 +11,13 @@ const AdminMap = dynamic(() => import("./AdminMap"), {
 interface AdminMapClientProps {
   onPolygonDrawn?: (polygon: any, affectedBarangays: string[]) => void;
   geoData?: any;
+  existingPolygons?: any[];
 }
 
 export default function AdminMapClient({
   onPolygonDrawn,
   geoData: initialGeoData,
+  existingPolygons = [],
 }: AdminMapClientProps) {
   const [geoData, setGeoData] = useState<any>(initialGeoData || null);
   const [isLoading, setIsLoading] = useState(!initialGeoData);
@@ -43,18 +45,22 @@ export default function AdminMapClient({
 
   if (isLoading) {
     return (
-      <div className="h-96 flex items-center justify-center bg-background/50 rounded-lg border border-white/20">
+      <div className="h-full flex items-center justify-center bg-background/50">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mx-auto"></div>
-          <p className="text-sm text-muted-foreground">Loading map...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-primary border-t-transparent mx-auto"></div>
+          <p className="text-lg font-medium">Loading map...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-96 rounded-lg overflow-hidden border border-white/20">
-      <AdminMap geoData={geoData} onPolygonDrawn={onPolygonDrawn} />
+    <div className="h-full">
+      <AdminMap
+        geoData={geoData}
+        onPolygonDrawn={onPolygonDrawn}
+        existingPolygons={existingPolygons}
+      />
     </div>
   );
 }
