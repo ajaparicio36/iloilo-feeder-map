@@ -36,6 +36,8 @@ interface Interruption {
   id: string;
   description: string;
   startTime: string;
+  endTime?: string;
+  type: string;
   customArea?: boolean;
   polygon?: any;
   interruptedFeeders: Array<{
@@ -209,7 +211,7 @@ export default function FilterAccordion({
           <AccordionTrigger className="px-4 py-3 hover:bg-white/5">
             <div className="flex items-center space-x-2">
               <AlertTriangle className="w-4 h-4 text-red-500" />
-              <span>Active Interruptions</span>
+              <span>Interruptions</span>
               <Badge
                 variant="destructive"
                 className="ml-auto bg-red-500/20 text-red-400"
@@ -222,57 +224,92 @@ export default function FilterAccordion({
             <ScrollArea className="h-48">
               {interruptions.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  No active interruptions
+                  No interruptions
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {interruptions.map((interruption) => (
-                    <div
-                      key={interruption.id}
-                      className="flex items-start justify-between p-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start space-x-2">
-                          <Switch
-                            checked={selectedInterruptions.includes(
-                              interruption.id
-                            )}
-                            onCheckedChange={() =>
-                              handleInterruptionToggle(interruption.id)
-                            }
-                            className="mt-0.5 data-[state=checked]:bg-red-500"
-                          />
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <p className="font-medium text-sm">
-                                {interruption.description ||
-                                  "Power Interruption"}
-                              </p>
-                              {interruption.customArea && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs border-orange-500/50 text-orange-400"
-                                >
-                                  Custom Area
-                                </Badge>
+                  {interruptions.map((interruption) => {
+                    const isActive = !interruption.endTime;
+                    const displayDescription =
+                      interruption.description || "No extra description";
+                    const typeLabel =
+                      interruption.type?.charAt(0) +
+                        interruption.type?.slice(1).toLowerCase() || "Unknown";
+
+                    return (
+                      <div
+                        key={interruption.id}
+                        className={`flex items-start justify-between p-3 rounded-xl transition-colors ${
+                          isActive
+                            ? "bg-red-500/10 hover:bg-red-500/20"
+                            : "bg-gray-500/10 hover:bg-gray-500/20"
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start space-x-2">
+                            <Switch
+                              checked={selectedInterruptions.includes(
+                                interruption.id
                               )}
+                              onCheckedChange={() =>
+                                handleInterruptionToggle(interruption.id)
+                              }
+                              className={`mt-0.5 ${
+                                isActive
+                                  ? "data-[state=checked]:bg-red-500"
+                                  : "data-[state=checked]:bg-gray-500"
+                              }`}
+                            />
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <p className="font-medium text-sm">
+                                  {typeLabel} Power Interruption
+                                </p>
+                                {interruption.customArea && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs border-orange-500/50 text-orange-400"
+                                  >
+                                    Custom Area
+                                  </Badge>
+                                )}
+                                {!isActive && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    Completed
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {displayDescription}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Started:{" "}
+                                {new Date(
+                                  interruption.startTime
+                                ).toLocaleString()}
+                              </p>
+                              {interruption.endTime && (
+                                <p className="text-xs text-muted-foreground">
+                                  Ended:{" "}
+                                  {new Date(
+                                    interruption.endTime
+                                  ).toLocaleString()}
+                                </p>
+                              )}
+                              <p className="text-xs text-muted-foreground">
+                                {interruption.customArea
+                                  ? "Custom drawn area"
+                                  : `Affects ${interruption.interruptedFeeders.length} feeder(s)`}
+                              </p>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Started:{" "}
-                              {new Date(
-                                interruption.startTime
-                              ).toLocaleString()}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {interruption.customArea
-                                ? "Custom drawn area"
-                                : `Affects ${interruption.interruptedFeeders.length} feeder(s)`}
-                            </p>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>

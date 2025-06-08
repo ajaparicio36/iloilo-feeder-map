@@ -52,6 +52,8 @@ interface InterruptionData {
   id: string;
   description: string;
   startTime: string;
+  endTime?: string | null;
+  type: string;
   polygon?: any;
   customArea?: boolean;
   interruptedFeeders: Array<{
@@ -74,6 +76,7 @@ interface MapProps {
   filters: { feeders: string[]; interruptions: string[] };
   geoData: any;
   barangayData: BarangayFeederData[];
+  interruptions: InterruptionData[];
 }
 
 // Function to fix encoding issues (same as in MapClient)
@@ -101,6 +104,7 @@ export default function Map({
   filters,
   geoData,
   barangayData,
+  interruptions,
 }: MapProps) {
   const [mapRef, setMapRef] = useState<L.Map | null>(null);
   const [hoveredBarangay, setHoveredBarangay] = useState<string | null>(null);
@@ -108,7 +112,6 @@ export default function Map({
     geoData: BarangayData;
     feederData: BarangayFeederData | null;
   } | null>(null);
-  const [interruptions, setInterruptions] = useState<InterruptionData[]>([]);
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
 
   // Iloilo City coordinates and bounds
@@ -378,61 +381,73 @@ export default function Map({
     };
   };
 
-  // Load interruptions with polygon data
-  useEffect(() => {
-    const loadInterruptions = async () => {
-      try {
-        const response = await fetch("/api/v1/interruptions");
-        const data = await response.json();
-        setInterruptions(data);
-        console.log("Loaded interruptions with polygon data:", data);
-      } catch (error) {
-        console.error("Error loading interruptions:", error);
-      }
-    };
-
-    loadInterruptions();
-  }, []);
-
   const renderInterruptionPolygons = () => {
-    return interruptions
+    if (!interruptions || interruptions.length === 0) {
+      return null;
+    }
+
+    const filteredInterruptions =
+      filters.interruptions.length > 0
+        ? interruptions.filter((interruption) =>
+            filters.interruptions.includes(interruption.id)
+          )
+        : interruptions;
+
+    return filteredInterruptions
       .filter((interruption) => interruption.customArea && interruption.polygon)
-      .map((interruption) => (
-        <GeoJSON
-          key={interruption.id}
-          data={
-            {
-              type: "Feature",
-              geometry: interruption.polygon as GeoJSON.Geometry,
-              properties: {
-                id: interruption.id,
-                description: interruption.description,
-                startTime: interruption.startTime,
-              },
-            } as GeoJSON.Feature
-          }
-          style={{
-            fillColor: "#ef4444",
-            weight: 2,
-            opacity: 0.8,
-            color: "#dc2626",
-            dashArray: "5, 5",
-            fillOpacity: 0.3,
-          }}
-          onEachFeature={(feature, layer) => {
-            layer.bindPopup(
-              `<div class="font-semibold text-sm">
-                <strong class="text-red-500">Power Interruption</strong><br/>
-                <span class="text-xs">${interruption.description}</span><br/>
-                <span class="text-xs text-gray-500">
-                  Started: ${new Date(interruption.startTime).toLocaleString()}
-                </span>
-              </div>`,
-              { className: "custom-popup" }
-            );
-          }}
-        />
-      ));
+      .map((interruption) => {
+        const displayDescription =
+          interruption.description || "No extra description";
+        const typeLabel =
+          interruption.type?.charAt(0) +
+            interruption.type?.slice(1).toLowerCase() || "Unknown";
+
+        return (
+          <GeoJSON
+            key={interruption.id}
+            data={
+              {
+                type: "Feature",
+                geometry: interruption.polygon as GeoJSON.Geometry,
+                properties: {
+                  id: interruption.id,
+                  description: interruption.description,
+                  startTime: interruption.startTime,
+                },
+              } as GeoJSON.Feature
+            }
+            style={{
+              fillColor: "#ef4444",
+              weight: 2,
+              opacity: 0.8,
+              color: "#dc2626",
+              dashArray: "5, 5",
+              fillOpacity: 0.3,
+            }}
+            onEachFeature={(feature, layer) => {
+              const endTimeDisplay = interruption.endTime
+                ? `<span class="text-xs text-gray-500">
+                     Ended: ${new Date(interruption.endTime).toLocaleString()}
+                   </span><br/>`
+                : "";
+
+              layer.bindPopup(
+                `<div class="font-semibold text-sm">
+                  <strong class="text-red-500">${typeLabel} Power Interruption</strong><br/>
+                  <span class="text-xs">${displayDescription}</span><br/>
+                  <span class="text-xs text-gray-500">
+                    Started: ${new Date(
+                      interruption.startTime
+                    ).toLocaleString()}
+                  </span><br/>
+                  ${endTimeDisplay}
+                </div>`,
+                { className: "custom-popup" }
+              );
+            }}
+          />
+        );
+      });
   };
 
   return (

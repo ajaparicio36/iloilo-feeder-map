@@ -17,6 +17,8 @@ export const updateFeederSchema = z.object({
     .optional(),
 });
 
+export const partialFeederSchema = createFeederSchema.partial();
+
 export const feederQuerySchema = z.object({
   search: z
     .string()
@@ -36,4 +38,5 @@ export const feederQuerySchema = z.object({
 
 export type CreateFeederInput = z.infer<typeof createFeederSchema>;
 export type UpdateFeederInput = z.infer<typeof updateFeederSchema>;
+export type PartialFeederInput = z.infer<typeof partialFeederSchema>;
 export type FeederQueryInput = z.infer<typeof feederQuerySchema>;

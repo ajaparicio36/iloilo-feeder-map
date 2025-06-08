@@ -15,9 +15,9 @@ export const GET = async (request: NextRequest) => {
 
     const searchParams = request.nextUrl.searchParams;
     const queryResult = barangayQuerySchema.safeParse({
-      search: searchParams.get("search"),
-      page: searchParams.get("page"),
-      limit: searchParams.get("limit"),
+      search: searchParams.get("search") || undefined,
+      page: searchParams.get("page") || "1",
+      limit: searchParams.get("limit") || "10",
     });
 
     if (!queryResult.success) {

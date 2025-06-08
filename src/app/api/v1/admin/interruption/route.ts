@@ -15,13 +15,14 @@ export const GET = async (request: NextRequest) => {
 
     const searchParams = request.nextUrl.searchParams;
     const queryResult = interruptionQuerySchema.safeParse({
-      search: searchParams.get("search"),
-      page: searchParams.get("page"),
-      limit: searchParams.get("limit"),
-      status: searchParams.get("status"),
+      search: searchParams.get("search") || undefined,
+      page: searchParams.get("page") || "1",
+      limit: searchParams.get("limit") || "10",
+      status: searchParams.get("status") || "all",
     });
 
     if (!queryResult.success) {
+      console.log("Invalid query parameters:", queryResult.error);
       return NextResponse.json(
         { error: "Invalid query parameters" },
         { status: 400 }
@@ -37,10 +38,14 @@ export const GET = async (request: NextRequest) => {
       where.description = { contains: search, mode: "insensitive" as const };
     }
 
+    const now = new Date();
     if (status === "active") {
-      where.endTime = null;
+      where.OR = [
+        { endTime: null }, // No end time set
+        { endTime: { gt: now } }, // End time is in the future
+      ];
     } else if (status === "completed") {
-      where.endTime = { not: null };
+      where.endTime = { lte: now }; // End time has passed
     }
 
     const [interruptions, total] = await Promise.all([
@@ -73,6 +78,7 @@ export const GET = async (request: NextRequest) => {
       },
     });
   } catch (error: any) {
+    console.log(error);
     if (error.statusCode) {
       return NextResponse.json(
         { error: error.message },
@@ -96,7 +102,14 @@ export const POST = async (request: NextRequest) => {
     const validationResult = createInterruptionSchema.safeParse(body);
 
     if (!validationResult.success) {
-      throw new ValidationError("Invalid input data");
+      console.log("Validation errors:", validationResult.error);
+      return NextResponse.json(
+        {
+          error: "Invalid input data",
+          details: validationResult.error.format(),
+        },
+        { status: 400 }
+      );
     }
 
     const {
@@ -150,6 +163,7 @@ export const POST = async (request: NextRequest) => {
       { status: 201 }
     );
   } catch (error: any) {
+    console.log(error);
     if (error.statusCode) {
       return NextResponse.json(
         { error: error.message },

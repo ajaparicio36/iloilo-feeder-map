@@ -1,0 +1,175 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Pencil, Trash2, Search, Plus } from "lucide-react";
+import CreateFeederForm from "./CreateFeederForm";
+
+interface Feeder {
+  id: string;
+  name: string;
+  _count: {
+    feederCoverage: number;
+    interruptedFeeders: number;
+  };
+}
+
+export default function CreateFeederCard() {
+  const [feeders, setFeeders] = useState<Feeder[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingFeeder, setEditingFeeder] = useState<Feeder | null>(null);
+
+  const loadFeeders = async () => {
+    try {
+      const response = await fetch(
+        `/api/v1/admin/feeder?search=${searchTerm}&limit=50`
+      );
+      if (!response.ok) throw new Error("Failed to load feeders");
+
+      const data = await response.json();
+      setFeeders(data.data);
+    } catch {
+      toast.error("Failed to load feeders");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFeeders();
+  }, [searchTerm]);
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    try {
+      const response = await fetch(`/api/v1/admin/feeder/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) throw new Error("Failed to delete feeder");
+
+      toast.success(`Feeder "${name}" deleted successfully`);
+
+      loadFeeders();
+    } catch {
+      toast.error("Failed to delete feeder");
+    }
+  };
+
+  const handleFormSuccess = () => {
+    setShowCreateForm(false);
+    setEditingFeeder(null);
+    loadFeeders();
+  };
+
+  if (showCreateForm || editingFeeder) {
+    return (
+      <CreateFeederForm
+        initialData={editingFeeder || undefined}
+        onSuccess={handleFormSuccess}
+        onCancel={() => {
+          setShowCreateForm(false);
+          setEditingFeeder(null);
+        }}
+      />
+    );
+  }
+
+  return (
+    <Card className="bg-background/80 backdrop-blur-xl border border-white/20 shadow-2xl">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Feeder Management
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Manage power feeders in the system
+            </CardDescription>
+          </div>
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Feeder
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Search feeders..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-background/50 border-white/20 focus:border-primary/50"
+          />
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+          </div>
+        ) : (
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {feeders.map((feeder) => (
+              <div
+                key={feeder.id}
+                className="flex items-center justify-between p-4 rounded-lg bg-background/30 border border-white/10 hover:bg-background/50 transition-colors"
+              >
+                <div className="flex-1">
+                  <h3 className="font-semibold">{feeder.name}</h3>
+                  <div className="flex gap-2 mt-1">
+                    <Badge variant="secondary" className="text-xs">
+                      {feeder._count.feederCoverage} barangays
+                    </Badge>
+                    <Badge variant="destructive" className="text-xs">
+                      {feeder._count.interruptedFeeders} interruptions
+                    </Badge>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingFeeder(feeder)}
+                    className="bg-background/50 border-white/20 hover:bg-background/70"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDelete(feeder.id, feeder.name)}
+                    className="bg-destructive/80 hover:bg-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {feeders.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No feeders found
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

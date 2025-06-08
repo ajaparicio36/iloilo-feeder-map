@@ -51,6 +51,7 @@ export default function MapClient() {
   const [geoData, setGeoData] = useState<any>(null);
   const [barangayNames, setBarangayNames] = useState<string[]>([]);
   const [barangayData, setBarangayData] = useState<any[]>([]);
+  const [interruptionsData, setInterruptionsData] = useState<any[]>([]);
 
   // Load all data immediately when component mounts
   useEffect(() => {
@@ -133,6 +134,8 @@ export default function MapClient() {
           feeders: feedersData.length,
           interruptions: interruptionsData.length,
         });
+
+        setInterruptionsData(interruptionsData);
 
         updateLoadingState("feederData");
         updateLoadingState("interruptionData");
@@ -246,6 +249,7 @@ export default function MapClient() {
           filters={filters}
           geoData={geoData}
           barangayData={barangayData}
+          interruptions={interruptionsData}
         />
       </div>
     </div>

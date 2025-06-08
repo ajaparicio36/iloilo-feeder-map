@@ -11,7 +11,14 @@ export const createInterruptionSchema = z
   .object({
     startTime: z
       .string()
-      .datetime("Invalid start time format")
+      .transform((val) => {
+        // Try to parse and convert to ISO string
+        const date = new Date(val);
+        if (isNaN(date.getTime())) {
+          throw new Error("Invalid date format");
+        }
+        return date.toISOString();
+      })
       .refine((date) => {
         const startDate = new Date(date);
         const now = new Date();
@@ -30,7 +37,15 @@ export const createInterruptionSchema = z
       }, "Start time must be within a reasonable date range"),
     endTime: z
       .string()
-      .datetime("Invalid end time format")
+      .transform((val) => {
+        if (!val) return null;
+        // Try to parse and convert to ISO string
+        const date = new Date(val);
+        if (isNaN(date.getTime())) {
+          throw new Error("Invalid date format");
+        }
+        return date.toISOString();
+      })
       .optional()
       .nullable()
       .refine((date) => {
@@ -77,7 +92,14 @@ export const updateInterruptionSchema = z
   .object({
     startTime: z
       .string()
-      .datetime("Invalid start time format")
+      .transform((val) => {
+        // Try to parse and convert to ISO string
+        const date = new Date(val);
+        if (isNaN(date.getTime())) {
+          throw new Error("Invalid date format");
+        }
+        return date.toISOString();
+      })
       .refine((date) => {
         const startDate = new Date(date);
         const now = new Date();
@@ -96,7 +118,15 @@ export const updateInterruptionSchema = z
       .optional(),
     endTime: z
       .string()
-      .datetime("Invalid end time format")
+      .transform((val) => {
+        if (!val) return null;
+        // Try to parse and convert to ISO string
+        const date = new Date(val);
+        if (isNaN(date.getTime())) {
+          throw new Error("Invalid date format");
+        }
+        return date.toISOString();
+      })
       .refine((date) => {
         if (!date) return true;
         const endDate = new Date(date);
@@ -158,7 +188,14 @@ export const interruptionQuerySchema = z.object({
   status: z.enum(["active", "completed", "all"]).optional().default("all"),
 });
 
+export const partialInterruptionSchema = createInterruptionSchema
+  .innerType()
+  .partial();
+
 export type CreateInterruptionInput = z.infer<typeof createInterruptionSchema>;
 export type UpdateInterruptionInput = z.infer<typeof updateInterruptionSchema>;
 export type InterruptionQueryInput = z.infer<typeof interruptionQuerySchema>;
 export type InterruptionType = z.infer<typeof interruptionTypeSchema>;
+export type PartialInterruptionInput = z.infer<
+  typeof partialInterruptionSchema
+>;

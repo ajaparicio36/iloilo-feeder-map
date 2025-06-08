@@ -30,6 +30,8 @@ export const updateBarangaySchema = z.object({
     .optional(),
 });
 
+export const partialBarangaySchema = createBarangaySchema.partial();
+
 export const barangayQuerySchema = z.object({
   search: z
     .string()
@@ -49,4 +51,5 @@ export const barangayQuerySchema = z.object({
 
 export type CreateBarangayInput = z.infer<typeof createBarangaySchema>;
 export type UpdateBarangayInput = z.infer<typeof updateBarangaySchema>;
+export type PartialBarangayInput = z.infer<typeof partialBarangaySchema>;
 export type BarangayQueryInput = z.infer<typeof barangayQuerySchema>;

@@ -5,9 +5,14 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
+    const now = new Date();
+
     const interruptions = await prisma.interruption.findMany({
       where: {
-        endTime: null,
+        OR: [
+          { endTime: null }, // No end time set
+          { endTime: { gt: now } }, // End time is in the future
+        ],
       },
       include: {
         interruptedFeeders: {
